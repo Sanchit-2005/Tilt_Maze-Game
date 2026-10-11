@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tilt Maze</title>
+<style>
+:root{--bg:#ede5e1;--wall:#363730;--ball:#26002b;--dot:#f0654a;--goal:#7c82c4;--text:#26002b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1a1f;--wall:#cfcbc4;--ball:#e9d5ee;--text:#e9d5ee}}
+:root[data-theme="dark"]{--bg:#1b1a1f;--wall:#cfcbc4;--ball:#e9d5ee;--text:#e9d5ee}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;overflow:hidden}
+.game{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:40px}
+#stage{perspective:900px}
+#maze{display:block;width:min(86vw,460px);height:auto;transform-style:preserve-3d;will-change:transform}
+.pad{position:relative;width:130px;height:130px}
+.pad button{position:absolute;width:44px;height:44px;border:0;background:none;padding:0;cursor:pointer;touch-action:none}
+.pad button::after{content:"";position:absolute;inset:8px;background:var(--ball)}
+.pad .u{left:43px;top:0}.pad .d{left:43px;bottom:0}.pad .l{left:0;top:43px}.pad .r{right:0;top:43px}
+.u::after{clip-path:polygon(50% 20%,100% 70%,0 70%)}
+.d::after{clip-path:polygon(50% 80%,100% 30%,0 30%)}
+.l::after{clip-path:polygon(20% 50%,70% 0,70% 100%)}
+.r::after{clip-path:polygon(80% 50%,30% 0,30% 100%)}
+.pad .hub{position:absolute;left:33px;top:33px;width:64px;height:64px;border-radius:50%;background:var(--ball)}
+.pad .hub i{position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;background:var(--dot);transition:transform .08s}
+#hud{font-size:16px;letter-spacing:.04em;min-height:1.4em;text-align:center}
+#hud button{margin-left:10px;font:inherit;padding:4px 12px;border-radius:8px;border:1px solid var(--wall);background:none;color:inherit;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="game">
+  <div id="stage"><canvas id="maze" width="900" height="900"></canvas></div>
+  <div class="pad" id="pad">
+    <button class="u" data-k="ArrowUp"></button><button class="d" data-k="ArrowDown"></button>
+    <button class="l" data-k="ArrowLeft"></button><button class="r" data-k="ArrowRight"></button>
+    <div class="hub"><i id="nub"></i></div>
+  </div>
+</div>
+<div id="hud"></div>
+
+<script>
+const N = 8, S = 900, PAD = 40, C = (S - PAD * 2) / N, LW = 16, R = 15;
+const cv = document.getElementById('maze'), ctx = cv.getContext('2d');
+const hud = document.getElementById('hud'), nub = document.getElementById('nub');
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+let walls, dots, ball, vel, collected, won;
+const keys = {};
+
+function buildMaze() {
+  // recursive backtracker; cells[y][x] = {t,r,b,l} walls
+  const cells = Array.from({length: N}, () => Array.from({length: N}, () => ({t:1,r:1,b:1,l:1,v:0})));
+  const stack = [[0, 0]]; cells[0][0].v = 1;
+  const dirs = [[0,-1,'t','b'],[1,0,'r','l'],[0,1,'b','t'],[-1,0,'l','r']];
+  while (stack.length) {
+    const [x, y] = stack[stack.length - 1];
+    const opts = dirs.filter(([dx,dy]) => cells[y+dy]?.[x+dx] && !cells[y+dy][x+dx].v);
+    if (!opts.length) { stack.pop(); continue; }
+    const [dx, dy, a, b] = opts[Math.floor(Math.random() * opts.length)];
+    cells[y][x][a] = 0; cells[y+dy][x+dx][b] = 0; cells[y+dy][x+dx].v = 1;
+    stack.push([x + dx, y + dy]);
+  }
+  // open a few extra walls so there are loops (feels more like the original)
+  for (let i = 0; i < 6; i++) {
+    const x = Math.floor(Math.random() * (N - 1)), y = Math.floor(Math.random() * N);
+    cells[y][x].r = 0; cells[y][x+1].l = 0;
+  }
+  walls = [];
+  const P = (x, y) => [PAD + x * C, PAD + y * C];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const c = cells[y][x];
+    if (c.t) walls.push([...P(x, y), ...P(x + 1, y)]);
+    if (c.l) walls.push([...P(x, y), ...P(x, y + 1)]);
+    if (y === N - 1 && c.b) walls.push([...P(x, y + 1), ...P(x + 1, y + 1)]);
+    if (x === N - 1 && c.r) walls.push([...P(x + 1, y), ...P(x + 1, y + 1)]);
+  }
+  // collectible dots in random cells (not start / goal)
+  const mid = N / 2;
+  const free = [];
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++)
+    if (!(x === 0 && y === 0) && !(x >= mid - 1 && x <= mid && y >= mid - 1 && y <= mid)) free.push([x, y]);
+  free.sort(() => Math.random() - .5);
+  dots = free.slice(0, 4).map(([x, y]) => ({x: PAD + (x + .5) * C, y: PAD + (y + .5) * C, got: false}));
+  ball = {x: PAD + C / 2, y: PAD + C / 2};
+  vel = {x: 0, y: 0}; collected = 0; won = false;
+  updateHud();
+}
+
+function collide() {
+  for (const [x1, y1, x2, y2] of walls) {
+    const dx = x2 - x1, dy = y2 - y1, len2 = dx * dx + dy * dy;
+    let t = ((ball.x - x1) * dx + (ball.y - y1) * dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    const px = x1 + t * dx, py = y1 + t * dy;
+    let ex = ball.x - px, ey = ball.y - py;
+    const d = Math.hypot(ex, ey), min = R + LW / 2;
+    if (d < min) {
+      if (d === 0) { ex = 1; ey = 0; } else { ex /= d; ey /= d; }
+      ball.x = px + ex * min; ball.y = py + ey * min;
+      const vn = vel.x * ex + vel.y * ey;
+      if (vn < 0) { vel.x -= vn * ex * 1.3; vel.y -= vn * ey * 1.3; }
+    }
+  }
+}
+
+function step() {
+  if (!won) {
+    const a = 0.55;
+    if (keys.ArrowLeft) vel.x -= a; if (keys.ArrowRight) vel.x += a;
+    if (keys.ArrowUp) vel.y -= a;   if (keys.ArrowDown) vel.y += a;
+    vel.x *= .9; vel.y *= .9;
+    const sub = 3;
+    for (let i = 0; i < sub; i++) { ball.x += vel.x / sub; ball.y += vel.y / sub; collide(); }
+    for (const d of dots) if (!d.got && Math.hypot(d.x - ball.x, d.y - ball.y) < R + 10) { d.got = true; collected++; updateHud(); }
+    if (Math.hypot(ball.x - S / 2, ball.y - S / 2) < C * .6) { won = true; updateHud(); }
+  }
+  tilt(); draw();
+  requestAnimationFrame(step);
+}
+
+let tx = 0, ty = 0;
+function tilt() {
+  tx += (vel.y * 1.4 - tx) * .1; ty += (-vel.x * 1.4 - ty) * .1;
+  // resting pose slightly skewed like the original, then tilts toward motion
+  cv.style.transform = `rotateX(${8 - tx}deg) rotateY(${-4 + -ty}deg) rotateZ(-1deg)`;
+  nub.style.transform = `translate(${20 + vel.x * 2.2}px,${20 + vel.y * 2.2}px)`;
+}
+
+function line(x1, y1, x2, y2) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+function draw() {
+  ctx.clearRect(0, 0, S, S);
+  ctx.lineCap = 'round'; ctx.lineWidth = LW; ctx.strokeStyle = css('--wall');
+  walls.forEach(w => line(...w));
+  // goal
+  ctx.save(); ctx.setLineDash([22, 18]); ctx.lineWidth = 7; ctx.strokeStyle = css('--goal');
+  ctx.beginPath(); ctx.arc(S / 2, S / 2, C * .6, 0, 7); ctx.stroke(); ctx.restore();
+  // dots
+  ctx.fillStyle = css('--dot');
+  dots.forEach(d => { if (!d.got) { ctx.beginPath(); ctx.arc(d.x, d.y, 10, 0, 7); ctx.fill(); } });
+  // ball
+  ctx.fillStyle = css('--ball'); ctx.beginPath(); ctx.arc(ball.x, ball.y, R, 0, 7); ctx.fill();
+  ctx.fillStyle = css('--dot'); ctx.beginPath(); ctx.arc(ball.x - 6, ball.y - 6, 6, 0, 7); ctx.fill();
+}
+
+function updateHud() {
+  hud.innerHTML = won
+    ? `You made it! Dots: ${collected}/${dots.length} <button id="again">New maze</button>`
+    : `Dots ${collected}/${dots.length} — reach the dashed circle`;
+  const b = document.getElementById('again'); if (b) b.onclick = buildMaze;
+}
+
+addEventListener('keydown', e => { if (e.key.startsWith('Arrow')) { keys[e.key] = true; e.preventDefault(); } });
+addEventListener('keyup', e => { if (e.key.startsWith('Arrow')) keys[e.key] = false; });
+document.querySelectorAll('#pad button').forEach(b => {
+  const k = b.dataset.k;
+  b.addEventListener('pointerdown', e => { keys[k] = true; e.preventDefault(); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => b.addEventListener(ev, () => keys[k] = false));
+});
+
+buildMaze(); step();
+</script>
+</body>
+</html>
