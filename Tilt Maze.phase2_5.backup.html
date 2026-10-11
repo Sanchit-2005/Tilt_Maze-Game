@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tilt Maze</title>
+<style>
+/* tokens */
+:root{--bg:#ede5e1;--wall:#363730;--ball:#26002b;--dot:#f0654a;--goal:#7c82c4;--text:#26002b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1a1f;--wall:#cfcbc4;--ball:#e9d5ee;--text:#e9d5ee}}
+:root[data-theme="dark"]{--bg:#1b1a1f;--wall:#cfcbc4;--ball:#e9d5ee;--text:#e9d5ee}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;overflow:hidden}
+/* game area */
+.game{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:40px}
+#stage{perspective:900px}
+#maze{display:block;width:min(86vw,460px);height:auto;transform-style:preserve-3d;will-change:transform;touch-action:none;cursor:grab}
+#maze:active{cursor:grabbing}
+/* d-pad */
+.pad{position:relative;width:130px;height:130px}
+.pad button{position:absolute;width:44px;height:44px;border:0;background:none;padding:0;cursor:pointer;touch-action:none}
+.pad button::after{content:"";position:absolute;inset:8px;background:var(--ball)}
+.pad .u{left:43px;top:0}.pad .d{left:43px;bottom:0}.pad .l{left:0;top:43px}.pad .r{right:0;top:43px}
+.u::after{clip-path:polygon(50% 20%,100% 70%,0 70%)}
+.d::after{clip-path:polygon(50% 80%,100% 30%,0 30%)}
+.l::after{clip-path:polygon(20% 50%,70% 0,70% 100%)}
+.r::after{clip-path:polygon(80% 50%,30% 0,30% 100%)}
+.pad .hub{position:absolute;left:33px;top:33px;width:64px;height:64px;border-radius:50%;background:var(--ball)}
+.pad .hub i{position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;background:var(--dot);transition:transform .08s}
+/* hud */
+#hud{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:8px 14px;border-radius:14px;background:var(--ball);color:var(--bg);width:min(86vw,460px);min-height:52px;user-select:none;transition:opacity .3s}
+#hud.hud-hidden{opacity:0;pointer-events:none}
+.hud-cell{display:flex;flex-direction:column;align-items:center;gap:1px;flex:1}
+.hud-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;opacity:.5}
+.hud-value{font-size:19px;font-weight:700;line-height:1}
+#hud-timer{transition:color .3s}
+#hud-timer.warning{color:var(--dot)}
+#btn-pause{background:none;border:2px solid rgba(255,255,255,.25);border-radius:8px;color:inherit;cursor:pointer;font-size:16px;width:36px;height:36px;padding:0;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:background .15s}
+#btn-pause:hover{background:rgba(255,255,255,.2)}
+/* overlays */
+.overlay{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:opacity .2s}
+.overlay.hidden{opacity:0;pointer-events:none}
+.card{background:var(--bg);border-radius:20px;padding:36px 40px;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:330px;width:88%;box-shadow:0 24px 64px rgba(0,0,0,.35)}
+.card h1{margin:0;font-size:2.5rem;color:var(--text);letter-spacing:.03em}
+.card h2{margin:0;font-size:1.35rem;color:var(--text)}
+.card p{margin:0;font-size:.9rem;color:var(--text);opacity:.6;text-align:center;line-height:1.55}
+.card .hint{font-size:.78rem;opacity:.38}
+.badge{font-size:.76rem;font-weight:700;letter-spacing:.07em;padding:4px 14px;border-radius:99px;color:#fff}
+.badge.ok{background:#5cb85c}
+.badge.bad{background:var(--dot)}
+.stat-row{display:flex;gap:28px;justify-content:center}
+.stat{text-align:center}
+.stat-v{font-size:1.6rem;font-weight:700;color:var(--text);line-height:1}
+.stat-l{font-size:.68rem;opacity:.42;text-transform:uppercase;letter-spacing:.08em;margin-top:3px}
+.divider{width:100%;height:1px;background:var(--text);opacity:.1;border-radius:1px}
+.btn{width:100%;max-width:240px;padding:13px 24px;border:none;border-radius:12px;font:inherit;font-size:.95rem;font-weight:600;cursor:pointer;letter-spacing:.025em;transition:transform .1s,box-shadow .1s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.18)}
+.btn:active{transform:translateY(0);box-shadow:none}
+.btn-primary{background:var(--dot);color:#fff}
+.btn-secondary{background:transparent;border:2px solid var(--text);color:var(--text);opacity:.5}
+.btn-secondary:hover{opacity:.85}
+</style>
+</head>
+<body>
+
+<!-- Start overlay -->
+<div id="overlay-start" class="overlay" role="dialog" aria-modal="true" aria-labelledby="start-title">
+  <div class="card">
+    <h1 id="start-title">Tilt&nbsp;Maze</h1>
+    <p>Tilt the board with your cursor or keys. When balls collide, they merge into larger balls. Reach the center before time runs out!</p>
+    <p class="hint">Cursor tilt &middot; Arrow keys &middot; D-pad on mobile &middot; Esc / P to pause</p>
+    <div class="divider"></div>
+    <button id="btn-play" class="btn btn-primary">Play Level 1</button>
+  </div>
+</div>
+
+<!-- Pause overlay -->
+<div id="overlay-pause" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Game paused">
+  <div class="card">
+    <h2>Paused</h2>
+    <div class="divider"></div>
+    <button id="btn-resume"  class="btn btn-primary">Resume</button>
+    <button id="btn-restart" class="btn btn-secondary">Restart Level</button>
+  </div>
+</div>
+
+<!-- Result overlay -->
+<div id="overlay-result" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Round result">
+  <div class="card">
+    <span id="result-badge" class="badge"></span>
+    <h2 id="result-title"></h2>
+    <div class="stat-row">
+      <div class="stat"><div class="stat-v" id="res-time">--</div><div class="stat-l">Time</div></div>
+      <div class="stat"><div class="stat-v" id="res-dots">-/-</div><div class="stat-l">Dots</div></div>
+    </div>
+    <div class="divider"></div>
+    <button id="btn-next"  class="btn btn-primary"  style="display:none">Next Level &#x2192;</button>
+    <button id="btn-retry" class="btn btn-secondary" style="display:none">Retry</button>
+  </div>
+</div>
+
+<!-- Game -->
+<div class="game">
+  <div id="stage"><canvas id="maze" width="900" height="900"></canvas></div>
+  <div class="pad" id="pad">
+    <button class="u" data-k="ArrowUp"    aria-label="Move up"></button>
+    <button class="d" data-k="ArrowDown"  aria-label="Move down"></button>
+    <button class="l" data-k="ArrowLeft"  aria-label="Move left"></button>
+    <button class="r" data-k="ArrowRight" aria-label="Move right"></button>
+    <div class="hub"><i id="nub"></i></div>
+  </div>
+</div>
+
+<!-- HUD bar -->
+<div id="hud" class="hud-hidden">
+  <div class="hud-cell"><span class="hud-label">Level</span><span class="hud-value" id="hud-level">1</span></div>
+  <div class="hud-cell"><span class="hud-label">Time</span><span class="hud-value" id="hud-timer">60</span></div>
+  <div class="hud-cell"><span class="hud-label">Dots</span><span class="hud-value" id="hud-dots">0/4</span></div>
+  <button id="btn-pause" aria-label="Pause game">&#x23F8;</button>
+</div>
+
+<script>
+// ── Constants & Configuration ───────────────────────────────────────────
+const N=8,S=900,PAD=40,C=(S-PAD*2)/N,LW=16,BASE_R=15,MAX_R=24;
+const BASE_TIME=60,TIME_STEP=5,MIN_TIME=30;
+const INITIAL_BALL_COUNT=3,ACCEL=0.55,MAX_TILT=12,DEAD_ZONE=0.08;
+
+function getBallCount(lvl){return Math.min(4,INITIAL_BALL_COUNT+Math.floor((lvl-1)/3));}
+
+// ── DOM refs ────────────────────────────────────────────────────────────
+const cv=document.getElementById('maze'),ctx=cv.getContext('2d'),nub=document.getElementById('nub');
+const hudEl=document.getElementById('hud'),hudLevel=document.getElementById('hud-level'),hudTimer=document.getElementById('hud-timer'),hudDots=document.getElementById('hud-dots');
+const overlayStart=document.getElementById('overlay-start'),overlayPause=document.getElementById('overlay-pause'),overlayResult=document.getElementById('overlay-result');
+const btnPlay=document.getElementById('btn-play'),btnPause=document.getElementById('btn-pause'),btnResume=document.getElementById('btn-resume'),btnRestart=document.getElementById('btn-restart'),btnNext=document.getElementById('btn-next'),btnRetry=document.getElementById('btn-retry');
+const resBadge=document.getElementById('result-badge'),resTitle=document.getElementById('result-title'),resTime=document.getElementById('res-time'),resDots=document.getElementById('res-dots');
+
+// ── Colour cache (Phase-1 Fix 1) ────────────────────────────────────────
+const col={wall:'',ball:'',dot:'',goal:''};
+function refreshColors(){const s=getComputedStyle(document.documentElement);col.wall=s.getPropertyValue('--wall').trim();col.ball=s.getPropertyValue('--ball').trim();col.dot=s.getPropertyValue('--dot').trim();col.goal=s.getPropertyValue('--goal').trim();}
+refreshColors();
+if(window.matchMedia)window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',refreshColors);
+
+// ── Game state ──────────────────────────────────────────────────────────
+let gameState='start',level=1;
+let walls,dots,balls=[],mergeEffects=[],collected,timeLimit;
+const keys={};
+const cursorTilt={x:0,y:0,active:false};
+
+// Timer: performance.now-based, accumulates across pauses.
+let timerSnapshot=0,timerStart=0,timeLeft=0;
+let rafId=null;
+let tx=0,ty=0;
+
+// ── Timer helpers ───────────────────────────────────────────────────────
+function timeLimitForLevel(lvl){return Math.max(MIN_TIME,BASE_TIME-(lvl-1)*TIME_STEP);}
+function elapsedMs(){return gameState!=='playing'?timerSnapshot:timerSnapshot+(performance.now()-timerStart);}
+function startTimer(){timerSnapshot=0;timerStart=performance.now();}
+function pauseTimer(){timerSnapshot=elapsedMs();}
+function resumeTimer(){timerStart=performance.now();}
+
+// ── Maze generation & multi-ball spawn ──────────────────────────────────
+function buildMaze(){
+  const cells=Array.from({length:N},()=>Array.from({length:N},()=>({t:1,r:1,b:1,l:1,v:0})));
+  const stack=[[0,0]];cells[0][0].v=1;
+  const dirs=[[0,-1,'t','b'],[1,0,'r','l'],[0,1,'b','t'],[-1,0,'l','r']];
+  while(stack.length){
+    const[x,y]=stack[stack.length-1];
+    const opts=dirs.filter(([dx,dy])=>cells[y+dy]?.[x+dx]&&!cells[y+dy][x+dx].v);
+    if(!opts.length){stack.pop();continue;}
+    const[dx,dy,a,b]=opts[Math.floor(Math.random()*opts.length)];
+    cells[y][x][a]=0;cells[y+dy][x+dx][b]=0;cells[y+dy][x+dx].v=1;
+    stack.push([x+dx,y+dy]);
+  }
+  for(let i=0;i<6;i++){const x=Math.floor(Math.random()*(N-1)),y=Math.floor(Math.random()*N);cells[y][x].r=0;cells[y][x+1].l=0;}
+  walls=[];
+  const P=(x,y)=>[PAD+x*C,PAD+y*C];
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    const c=cells[y][x];
+    if(c.t)walls.push([...P(x,y),...P(x+1,y)]);
+    if(c.l)walls.push([...P(x,y),...P(x,y+1)]);
+    if(y===N-1&&c.b)walls.push([...P(x,y+1),...P(x+1,y+1)]);
+    if(x===N-1&&c.r)walls.push([...P(x+1,y),...P(x+1,y+1)]);
+  }
+
+  // Spawn initial balls in distinct corner cells
+  const count=getBallCount(level);
+  const spawnCoords=[[0,0],[N-1,0],[0,N-1],[N-1,N-1]];
+  balls=[];
+  for(let i=0;i<count;i++){
+    const[cx,cy]=spawnCoords[i%spawnCoords.length];
+    balls.push({
+      x:PAD+(cx+0.5)*C,
+      y:PAD+(cy+0.5)*C,
+      vx:0,
+      vy:0,
+      r:BASE_R
+    });
+  }
+  mergeEffects=[];
+
+  // Place collectibles in free cells (avoiding ball spawns and 2x2 center goal)
+  const mid=N/2;const free=[];
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    const isSpawn=spawnCoords.slice(0,count).some(([sx,sy])=>sx===x&&sy===y);
+    const isGoal=(x>=mid-1&&x<=mid&&y>=mid-1&&y<=mid);
+    if(!isSpawn&&!isGoal)free.push([x,y]);
+  }
+  free.sort(()=>Math.random()-.5);
+  dots=free.slice(0,4).map(([x,y])=>({x:PAD+(x+.5)*C,y:PAD+(y+.5)*C,got:false}));
+  collected=0;
+  timeLimit=timeLimitForLevel(level);timeLeft=timeLimit;
+}
+
+// ── Collision detection per ball ─────────────────────────────────────────
+function collideBall(b){
+  const min=b.r+LW/2;
+  for(const[x1,y1,x2,y2]of walls){
+    const dx=x2-x1,dy=y2-y1,len2=dx*dx+dy*dy;
+    let t=((b.x-x1)*dx+(b.y-y1)*dy)/len2;
+    t=Math.max(0,Math.min(1,t));
+    const px=x1+t*dx,py=y1+t*dy;
+    let ex=b.x-px,ey=b.y-py;
+    const d=Math.hypot(ex,ey);
+    if(d<min){
+      if(d===0){ex=1;ey=0;}else{ex/=d;ey/=d;}
+      b.x=px+ex*min;b.y=py+ey*min;
+      const vn=b.vx*ex+b.vy*ey;
+      if(vn<0){b.vx-=vn*ex*1.3;b.vy-=vn*ey*1.3;}
+    }
+  }
+  const lo=PAD-LW/2+b.r,hi=S-PAD+LW/2-b.r;
+  if(b.x<lo){b.x=lo;if(b.vx<0)b.vx=0;}
+  if(b.x>hi){b.x=hi;if(b.vx>0)b.vx=0;}
+  if(b.y<lo){b.y=lo;if(b.vy<0)b.vy=0;}
+  if(b.y>hi){b.y=hi;if(b.vy>0)b.vy=0;}
+}
+
+// ── Ball merging logic ──────────────────────────────────────────────────
+function processMerges(){
+  let merged=true;
+  while(merged&&balls.length>1){
+    merged=false;
+    for(let i=0;i<balls.length;i++){
+      for(let j=i+1;j<balls.length;j++){
+        const b1=balls[i],b2=balls[j];
+        const dist=Math.hypot(b1.x-b2.x,b1.y-b2.y);
+        if(dist<=b1.r+b2.r){
+          const m1=b1.r*b1.r,m2=b2.r*b2.r,mTot=m1+m2;
+          const nx=(b1.x*m1+b2.x*m2)/mTot;
+          const ny=(b1.y*m1+b2.y*m2)/mTot;
+          const nvx=(b1.vx*m1+b2.vx*m2)/mTot;
+          const nvy=(b1.vy*m1+b2.vy*m2)/mTot;
+          const nr=Math.min(MAX_R,Math.sqrt(mTot));
+          const nb={x:nx,y:ny,vx:nvx,vy:nvy,r:nr};
+          collideBall(nb);
+          mergeEffects.push({x:nb.x,y:nb.y,r:nr,maxR:nr*2.2,life:1});
+          balls.splice(j,1);
+          balls.splice(i,1,nb);
+          merged=true;
+          break;
+        }
+      }
+      if(merged)break;
+    }
+  }
+}
+
+// ── Main loop ───────────────────────────────────────────────────────────
+function step(){
+  if(gameState==='playing'){
+    // Timer tick
+    timeLeft=Math.max(0,timeLimit-elapsedMs()/1000);
+    updateHud();
+
+    // Timeout: freeze all balls, draw final frame, stop loop.
+    if(timeLeft<=0){
+      for(const b of balls){b.vx=0;b.vy=0;}
+      triggerTimeout();draw();return;
+    }
+
+    // Input acceleration (cursor tilt + keyboard / D-pad fallback)
+    let ax=cursorTilt.active?cursorTilt.x*ACCEL:0;
+    let ay=cursorTilt.active?cursorTilt.y*ACCEL:0;
+    if(keys.ArrowLeft)ax-=ACCEL;if(keys.ArrowRight)ax+=ACCEL;
+    if(keys.ArrowUp)ay-=ACCEL;if(keys.ArrowDown)ay+=ACCEL;
+    ax=Math.max(-ACCEL*1.5,Math.min(ACCEL*1.5,ax));
+    ay=Math.max(-ACCEL*1.5,Math.min(ACCEL*1.5,ay));
+
+    // Physics for all balls
+    for(const b of balls){
+      b.vx+=ax;b.vy+=ay;
+      b.vx*=.9;b.vy*=.9;
+    }
+    const sub=3;
+    for(let i=0;i<sub;i++){
+      for(const b of balls){
+        b.x+=b.vx/sub;b.y+=b.vy/sub;
+        collideBall(b);
+      }
+      processMerges();
+    }
+
+    // Collectibles (any ball can collect dots)
+    for(const d of dots){
+      if(!d.got){
+        for(const b of balls){
+          if(Math.hypot(d.x-b.x,d.y-b.y)<b.r+10){
+            d.got=true;collected++;updateHud();break;
+          }
+        }
+      }
+    }
+
+    // Goal: any ball entering the center circle wins the level
+    for(const b of balls){
+      if(Math.hypot(b.x-S/2,b.y-S/2)<C*.6){
+        for(const ball of balls){ball.vx=0;ball.vy=0;}
+        triggerWin();draw();return;
+      }
+    }
+
+    // Tilt interpolation & nub tracking
+    const avgVx=balls.reduce((s,b)=>s+b.vx,0)/(balls.length||1);
+    const avgVy=balls.reduce((s,b)=>s+b.vy,0)/(balls.length||1);
+    let targetTx=0,targetTy=0;
+    if(cursorTilt.active){
+      targetTx=cursorTilt.y*MAX_TILT;
+      targetTy=-cursorTilt.x*MAX_TILT;
+    }else{
+      targetTx=avgVy*1.4;
+      targetTy=-avgVx*1.4;
+    }
+    tx+=(targetTx-tx)*.1;
+    ty+=(targetTy-ty)*.1;
+    cv.style.transform=`rotateX(${8-tx}deg) rotateY(${-4+-ty}deg) rotateZ(-1deg)`;
+
+    const nubX=cursorTilt.active?cursorTilt.x*20:avgVx*2.2;
+    const nubY=cursorTilt.active?cursorTilt.y*20:avgVy*2.2;
+    nub.style.transform=`translate(${20+Math.max(-20,Math.min(20,nubX))}px,${20+Math.max(-20,Math.min(20,nubY))}px)`;
+  }
+  draw();
+  rafId=requestAnimationFrame(step);
+}
+
+// ── Drawing ─────────────────────────────────────────────────────────────
+function line(x1,y1,x2,y2){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();}
+function draw(){
+  ctx.clearRect(0,0,S,S);
+  ctx.lineCap='round';ctx.lineWidth=LW;ctx.strokeStyle=col.wall;
+  walls.forEach(w=>line(...w));
+  ctx.save();ctx.setLineDash([22,18]);ctx.lineWidth=7;ctx.strokeStyle=col.goal;
+  ctx.beginPath();ctx.arc(S/2,S/2,C*.6,0,Math.PI*2);ctx.stroke();ctx.restore();
+  ctx.fillStyle=col.dot;
+  for(const d of dots)if(!d.got){ctx.beginPath();ctx.arc(d.x,d.y,10,0,Math.PI*2);ctx.fill();}
+
+  // Merge ripple effects
+  for(let i=mergeEffects.length-1;i>=0;i--){
+    const ef=mergeEffects[i];
+    ctx.save();
+    ctx.beginPath();
+    const curR=ef.r+(ef.maxR-ef.r)*(1-ef.life);
+    ctx.arc(ef.x,ef.y,curR,0,Math.PI*2);
+    ctx.strokeStyle=col.dot;
+    ctx.lineWidth=4*ef.life;
+    ctx.globalAlpha=ef.life*.85;
+    ctx.stroke();
+    ctx.restore();
+    ef.life-=.06;
+    if(ef.life<=0)mergeEffects.splice(i,1);
+  }
+
+  // Active balls
+  for(const b of balls){
+    ctx.fillStyle=col.ball;
+    ctx.beginPath();
+    ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+    ctx.fill();
+    const hlOff=Math.round(b.r*0.4);
+    const hlR=Math.max(3,Math.round(b.r*0.38));
+    ctx.fillStyle=col.dot;
+    ctx.beginPath();
+    ctx.arc(b.x-hlOff,b.y-hlOff,hlR,0,Math.PI*2);
+    ctx.fill();
+  }
+}
+
+// ── HUD ─────────────────────────────────────────────────────────────────
+function updateHud(){
+  hudLevel.textContent=level;
+  hudDots.textContent=`${collected}/${dots.length}`;
+  hudTimer.textContent=Math.ceil(timeLeft);
+  hudTimer.classList.toggle('warning',timeLeft>0&&timeLeft<=10);
+}
+
+// ── Overlay / loop helpers ───────────────────────────────────────────────
+const showOverlay=el=>el.classList.remove('hidden');
+const hideOverlay=el=>el.classList.add('hidden');
+const showHud=()=>hudEl.classList.remove('hud-hidden');
+function ensureLoop(){if(rafId===null)rafId=requestAnimationFrame(step);}
+function cancelLoop(){if(rafId!==null){cancelAnimationFrame(rafId);rafId=null;}}
+function resetCursorTilt(){cursorTilt.x=0;cursorTilt.y=0;cursorTilt.active=false;}
+
+// ── State transitions ────────────────────────────────────────────────────
+function startGame(){
+  level=1;
+  resetCursorTilt();
+  buildMaze();
+  hideOverlay(overlayStart);
+  showHud();updateHud();
+  gameState='playing';
+  startTimer();
+  ensureLoop();
+}
+
+function pauseGame(){
+  if(gameState!=='playing')return;
+  resetCursorTilt();
+  pauseTimer();gameState='paused';
+  cancelLoop();
+  showOverlay(overlayPause);
+}
+
+function resumeGame(){
+  if(gameState!=='paused')return;
+  resetCursorTilt();
+  hideOverlay(overlayPause);
+  gameState='playing';resumeTimer();ensureLoop();
+}
+
+function restartLevel(){
+  cancelLoop();
+  resetCursorTilt();
+  hideOverlay(overlayPause);hideOverlay(overlayResult);
+  tx=0;ty=0;cv.style.transform='rotateX(8deg) rotateY(-4deg) rotateZ(-1deg)';
+  buildMaze();updateHud();
+  gameState='playing';startTimer();ensureLoop();
+}
+
+function triggerWin(){
+  pauseTimer();
+  gameState='won';
+  resetCursorTilt();
+  cancelLoop();
+  resBadge.className='badge ok';
+  resBadge.textContent='\u2713\u2002Level Complete';
+  resTitle.textContent=`Level ${level} Clear!`;
+  resTime.textContent=formatTime(timerSnapshot);
+  resDots.textContent=`${collected}/${dots.length}`;
+  btnNext.style.display='';btnRetry.style.display='none';
+  showOverlay(overlayResult);
+}
+
+function triggerTimeout(){
+  gameState='timeout';
+  resetCursorTilt();
+  cancelLoop();
+  resBadge.className='badge bad';
+  resBadge.textContent='\u2715\u2002Time\u2019s Up';
+  resTitle.textContent=`Level ${level}`;
+  resTime.textContent=formatTime(timeLimit*1000);
+  resDots.textContent=`${collected}/${dots.length}`;
+  btnNext.style.display='none';btnRetry.style.display='';
+  showOverlay(overlayResult);
+}
+
+function nextLevel(){
+  level++;
+  resetCursorTilt();
+  hideOverlay(overlayResult);
+  tx=0;ty=0;cv.style.transform='rotateX(8deg) rotateY(-4deg) rotateZ(-1deg)';
+  buildMaze();updateHud();
+  gameState='playing';startTimer();ensureLoop();
+}
+
+function formatTime(ms){
+  const s=Math.floor(ms/1000),dec=Math.floor((ms%1000)/100);
+  return `${s}.${dec}s`;
+}
+
+// ── Continuous cursor tilt control ───────────────────────────────────────
+cv.addEventListener('pointermove',e=>{
+  if(gameState!=='playing')return;
+  const rect=cv.getBoundingClientRect();
+  const cx=rect.left+rect.width/2;
+  const cy=rect.top+rect.height/2;
+  let nx=(e.clientX-cx)/(rect.width/2);
+  let ny=(e.clientY-cy)/(rect.height/2);
+  nx=Math.max(-1,Math.min(1,nx));
+  ny=Math.max(-1,Math.min(1,ny));
+  const dist=Math.hypot(nx,ny);
+  if(dist<DEAD_ZONE){
+    cursorTilt.x=0;cursorTilt.y=0;
+  }else{
+    const scale=Math.min(1,(dist-DEAD_ZONE)/(1-DEAD_ZONE));
+    cursorTilt.x=(nx/dist)*scale;
+    cursorTilt.y=(ny/dist)*scale;
+  }
+  cursorTilt.active=true;
+});
+cv.addEventListener('pointerleave',resetCursorTilt);
+cv.addEventListener('pointercancel',resetCursorTilt);
+
+// ── Visibility / focus ──────────────────────────────────────────────────
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){
+    resetCursorTilt();
+    if(gameState==='playing')pauseGame();
+    else cancelLoop();
+  }else{
+    for(const k in keys)delete keys[k];
+    if(gameState==='start'||gameState==='playing')ensureLoop();
+  }
+});
+window.addEventListener('blur',()=>{
+  resetCursorTilt();
+  for(const k in keys)delete keys[k];
+});
+
+// ── Keyboard & D-pad Input ───────────────────────────────────────────────
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'||e.key==='p'||e.key==='P'){
+    if(gameState==='playing')pauseGame();
+    else if(gameState==='paused')resumeGame();
+    e.preventDefault();return;
+  }
+  if(e.key.startsWith('Arrow')){keys[e.key]=true;e.preventDefault();}
+});
+addEventListener('keyup',e=>{if(e.key.startsWith('Arrow'))keys[e.key]=false;});
+document.querySelectorAll('.pad button').forEach(b=>{
+  const k=b.dataset.k;
+  b.addEventListener('pointerdown',e=>{keys[k]=true;e.preventDefault();});
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false));
+});
+
+// ── Button wiring ────────────────────────────────────────────────────────
+btnPlay.addEventListener('click',startGame);
+btnPause.addEventListener('click',pauseGame);
+btnResume.addEventListener('click',resumeGame);
+btnRestart.addEventListener('click',restartLevel);
+btnNext.addEventListener('click',nextLevel);
+btnRetry.addEventListener('click',restartLevel);
+
+// ── Boot ─────────────────────────────────────────────────────────────────
+buildMaze();
+cv.style.transform='rotateX(8deg) rotateY(-4deg) rotateZ(-1deg)';
+ensureLoop();
+</script>
+</body>
+</html>
