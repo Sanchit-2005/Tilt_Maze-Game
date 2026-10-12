@@ -1,0 +1,153 @@
+/* Isolated three-second opening animation. */
+.intro-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: var(--goal);
+  background:
+    radial-gradient(circle at 50% 42%, var(--page-glow, #292640), transparent 45%),
+    var(--page, #12131b);
+  font-family: var(--font-ui, "Nunito", system-ui, sans-serif);
+  pointer-events: auto;
+  animation: intro-splash-exit 400ms cubic-bezier(0.4, 0, 1, 1) 2600ms forwards;
+}
+
+.intro-splash__content {
+  display: grid;
+  width: min(86vw, 560px);
+  justify-items: center;
+}
+
+.intro-splash__title {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  margin: 0;
+  color: var(--goal, #9d99f4);
+  font-size: clamp(2.6rem, 10vmin, 5.4rem);
+  font-weight: 900;
+  letter-spacing: 0.045em;
+  line-height: 0.95;
+  animation: intro-title-glow 1200ms ease-in-out 800ms both;
+}
+
+.intro-splash__title > span:not(.intro-splash__space) {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(-1.35em) scale(0.84);
+  animation: intro-letter-drop 440ms cubic-bezier(0.22, 1.45, 0.42, 1) calc(var(--i) * 42ms) forwards;
+}
+
+.intro-splash__title .intro-splash__accent {
+  color: var(--ball, #ff7658);
+}
+
+.intro-splash__space {
+  width: 0.24em;
+}
+
+.intro-splash__ball-track {
+  position: relative;
+  width: min(76vw, 470px);
+  height: clamp(44px, 7vmin, 58px);
+  margin-top: clamp(12px, 2vmin, 18px);
+  overflow: hidden;
+}
+
+.intro-splash__ball-track::before {
+  position: absolute;
+  top: 50%;
+  left: 5%;
+  width: 76%;
+  height: 11px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 118, 88, 0.12), rgba(255, 118, 88, 0.7));
+  box-shadow: 0 0 22px rgba(255, 118, 88, 0.48);
+  content: "";
+  opacity: 0;
+  transform: translateY(-50%) scaleX(0.15);
+  transform-origin: right center;
+  animation: intro-trail 1200ms ease-out 800ms both;
+}
+
+.intro-splash__ball {
+  position: absolute;
+  top: 50%;
+  left: -52px;
+  width: clamp(30px, 5vmin, 42px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 31% 26%, var(--ball-highlight, #ffd1ae), var(--ball, #ff7658) 52%, var(--ball-shade, #d85042));
+  box-shadow: 0 6px 13px rgba(168, 63, 47, 0.35), 0 0 22px rgba(255, 118, 88, 0.48);
+  opacity: 0;
+  transform: translateY(-50%) rotate(0deg);
+  animation: intro-ball-roll 1200ms cubic-bezier(0.3, 0.8, 0.4, 1) 800ms forwards;
+}
+
+.intro-splash__tagline {
+  margin: 12px 0 0;
+  color: rgba(248, 245, 255, 0.86);
+  font-size: clamp(0.92rem, 2.4vmin, 1.15rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: intro-tagline-in 420ms ease-out 2000ms forwards;
+}
+
+@keyframes intro-letter-drop {
+  0% { opacity: 0; transform: translateY(-1.35em) scale(0.84); }
+  68% { opacity: 1; transform: translateY(0.12em) scale(1.04); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes intro-title-glow {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(157, 153, 244, 0)); }
+  45% { filter: drop-shadow(0 0 18px rgba(184, 180, 255, 0.82)); }
+}
+
+@keyframes intro-ball-roll {
+  0% { left: -52px; opacity: 0; transform: translateY(-50%) rotate(0deg); }
+  8% { opacity: 1; }
+  100% { left: calc(100% - clamp(30px, 5vmin, 42px)); opacity: 1; transform: translateY(-50%) rotate(900deg); }
+}
+
+@keyframes intro-trail {
+  0% { opacity: 0; transform: translateY(-50%) scaleX(0.12); }
+  26% { opacity: 0.85; }
+  100% { opacity: 0; transform: translateY(-50%) scaleX(1); }
+}
+
+@keyframes intro-tagline-in {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes intro-splash-exit {
+  to { opacity: 0; transform: scale(1.035); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-splash {
+    animation-duration: 180ms;
+    animation-delay: 360ms;
+  }
+
+  .intro-splash__title,
+  .intro-splash__title > span:not(.intro-splash__space),
+  .intro-splash__ball-track::before,
+  .intro-splash__ball,
+  .intro-splash__tagline {
+    animation: none;
+  }
+
+  .intro-splash__title > span:not(.intro-splash__space),
+  .intro-splash__tagline {
+    opacity: 1;
+    transform: none;
+  }
+
+  .intro-splash__ball-track { display: none; }
+}

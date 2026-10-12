@@ -11,7 +11,7 @@ const BASE_TIME = 60,
   MIN_TIME = 30;
 const INITIAL_BALL_COUNT = 4;
 const ACCEL = 0.75,
-  MAX_TILT = 13,
+  MAX_TILT = 7,
   DEAD_ZONE = 0.05,
   MAX_SPEED = 12;
 
@@ -41,13 +41,27 @@ const resBadge = document.getElementById("result-badge"),
   resBalls = document.getElementById("res-balls");
 
 // ── Colour cache ─────────────────────────────────────────────────────────
-const col = { wall: "", ball: "", dot: "", goal: "", bg: "" };
+const col = {
+  wall: "",
+  wallShadow: "",
+  ball: "",
+  ballHighlight: "",
+  ballShade: "",
+  dot: "",
+  goal: "",
+  goalFill: "",
+  bg: "",
+};
 function refreshColors() {
   const s = getComputedStyle(document.documentElement);
   col.wall = s.getPropertyValue("--wall").trim();
+  col.wallShadow = s.getPropertyValue("--wall-shadow").trim();
   col.ball = s.getPropertyValue("--ball").trim();
+  col.ballHighlight = s.getPropertyValue("--ball-highlight").trim();
+  col.ballShade = s.getPropertyValue("--ball-shade").trim();
   col.dot = s.getPropertyValue("--dot").trim();
   col.goal = s.getPropertyValue("--goal").trim();
+  col.goalFill = s.getPropertyValue("--goal-fill").trim();
   col.bg = s.getPropertyValue("--bg").trim();
 }
 refreshColors();
@@ -311,7 +325,7 @@ function updateVisualTilt() {
   // Fast, responsive interpolation without sluggish lag
   tx += (targetTx - tx) * 0.25;
   ty += (targetTy - ty) * 0.25;
-  cv.style.transform = `rotateX(${8 - tx}deg) rotateY(${-4 + -ty}deg) rotateZ(-1deg)`;
+  cv.style.transform = `rotateX(${4 - tx}deg) rotateY(${-2 + -ty}deg) rotateZ(-0.5deg)`;
 
   const nubX = cursorTilt.active ? cursorTilt.x * 20 : avgVx * 2;
   const nubY = cursorTilt.active ? cursorTilt.y * 20 : avgVy * 2;
@@ -378,16 +392,28 @@ function line(x1, y1, x2, y2) {
 }
 function draw() {
   ctx.clearRect(0, 0, S, S);
+  ctx.save();
   ctx.lineCap = "round";
-  ctx.lineWidth = LW;
+  ctx.lineJoin = "round";
+  ctx.lineWidth = LW - 3;
   ctx.strokeStyle = col.wall;
+  ctx.shadowColor = col.wallShadow;
+  ctx.shadowBlur = 5;
+  ctx.shadowOffsetY = 3;
   walls.forEach((w) => line(...w));
+  ctx.restore();
+
+  const goalPulse = 1 + Math.sin(performance.now() * 0.004) * 0.045;
   ctx.save();
   ctx.setLineDash([22, 18]);
-  ctx.lineWidth = 7;
+  ctx.lineWidth = 6;
   ctx.strokeStyle = col.goal;
+  ctx.fillStyle = col.goalFill;
+  ctx.shadowColor = col.goal;
+  ctx.shadowBlur = 15;
   ctx.beginPath();
-  ctx.arc(S / 2, S / 2, C * 0.6, 0, Math.PI * 2);
+  ctx.arc(S / 2, S / 2, C * 0.6 * goalPulse, 0, Math.PI * 2);
+  ctx.fill();
   ctx.stroke();
   ctx.restore();
 
@@ -401,18 +427,36 @@ function draw() {
     ctx.strokeStyle = col.dot;
     ctx.lineWidth = 4 * ef.life;
     ctx.globalAlpha = ef.life * 0.85;
+    ctx.shadowColor = col.dot;
+    ctx.shadowBlur = 12;
     ctx.stroke();
     ctx.restore();
     ef.life -= 0.06;
     if (ef.life <= 0) mergeEffects.splice(i, 1);
   }
 
-  // Active solid orange balls
-  ctx.fillStyle = col.dot;
+  // Active orange balls use a visual-only radial gradient for depth.
   for (const b of balls) {
+    const gradient = ctx.createRadialGradient(
+      b.x - b.r * 0.36,
+      b.y - b.r * 0.42,
+      Math.max(1, b.r * 0.08),
+      b.x,
+      b.y,
+      b.r,
+    );
+    gradient.addColorStop(0, col.ballHighlight);
+    gradient.addColorStop(0.36, col.ball);
+    gradient.addColorStop(1, col.ballShade);
+    ctx.save();
+    ctx.fillStyle = gradient;
+    ctx.shadowColor = "rgba(125, 48, 39, 0.35)";
+    ctx.shadowBlur = 7;
+    ctx.shadowOffsetY = 3;
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
   }
 }
 
@@ -489,7 +533,7 @@ function restartLevel() {
   hideOverlay(overlayResult);
   tx = 0;
   ty = 0;
-  cv.style.transform = "rotateX(8deg) rotateY(-4deg) rotateZ(-1deg)";
+  cv.style.transform = "rotateX(4deg) rotateY(-2deg) rotateZ(-0.5deg)";
   buildMaze();
   updateHud();
   gameState = "playing";
@@ -534,7 +578,7 @@ function nextLevel() {
   hideOverlay(overlayResult);
   tx = 0;
   ty = 0;
-  cv.style.transform = "rotateX(8deg) rotateY(-4deg) rotateZ(-1deg)";
+  cv.style.transform = "rotateX(4deg) rotateY(-2deg) rotateZ(-0.5deg)";
   buildMaze();
   updateHud();
   gameState = "playing";
@@ -653,7 +697,15 @@ btnNext.addEventListener("click", nextLevel);
 btnRetry.addEventListener("click", restartLevel);
 
 // ── Boot ─────────────────────────────────────────────────────────────────
-buildMaze();
-cv.style.transform = "rotateX(8deg) rotateY(-4deg) rotateZ(-1deg)";
-ensureLoop();
-window.startGame = startGame;
+function bootGame() {
+  buildMaze();
+  cv.style.transform = "rotateX(4deg) rotateY(-2deg) rotateZ(-0.5deg)";
+  ensureLoop();
+  window.startGame = startGame;
+}
+
+if (document.getElementById("intro-splash")) {
+  window.addEventListener("tiltmaze:introcomplete", bootGame, { once: true });
+} else {
+  bootGame();
+}

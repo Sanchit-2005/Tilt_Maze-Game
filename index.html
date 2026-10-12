@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -7,10 +7,38 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <title>Tilt Maze</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="tutorial.css" />
+    <link rel="stylesheet" href="intro.css" />
   </head>
   <body>
+    <!-- Opening splash: isolated from the game, tutorial, and HUD. -->
+    <div id="intro-splash" class="intro-splash" role="status" aria-label="Tilt Rush introduction">
+      <div class="intro-splash__content">
+        <h1 class="intro-splash__title" aria-label="Tilt Rush">
+          <span aria-hidden="true" style="--i: 0">T</span>
+          <span aria-hidden="true" style="--i: 1">I</span>
+          <span aria-hidden="true" style="--i: 2">L</span>
+          <span aria-hidden="true" style="--i: 3">T</span>
+          <span class="intro-splash__space" aria-hidden="true"></span>
+          <span class="intro-splash__accent" aria-hidden="true" style="--i: 4">R</span>
+          <span class="intro-splash__accent" aria-hidden="true" style="--i: 5">U</span>
+          <span class="intro-splash__accent" aria-hidden="true" style="--i: 6">S</span>
+          <span class="intro-splash__accent" aria-hidden="true" style="--i: 7">H</span>
+        </h1>
+        <div class="intro-splash__ball-track" aria-hidden="true">
+          <i class="intro-splash__ball"></i>
+        </div>
+        <p class="intro-splash__tagline">Guide the balls home</p>
+      </div>
+    </div>
+
     <!-- Start overlay -->
     <div
       id="overlay-start"
@@ -117,6 +145,7 @@
 
     <!-- Game -->
     <div class="game">
+      <h1 class="game-title">Tilt Maze</h1>
       <div id="stage"><canvas id="maze" width="900" height="900"></canvas></div>
       <div class="pad" id="pad">
         <button class="u" data-k="ArrowUp" aria-label="Move up"></button>
@@ -146,6 +175,7 @@
 
     <script src="script.js" defer></script>
     <script src="tutorial.js" defer></script>
+    <script src="intro.js" defer></script>
     <!-- Intro overlay (hidden until name submitted) -->
     <div id="overlay-intro" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Game Intro">
       <div class="card intro-card">
