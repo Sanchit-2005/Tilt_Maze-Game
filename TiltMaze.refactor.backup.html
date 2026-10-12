@@ -5,43 +5,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Tilt Maze</title>
 <style>
-/* tokens */
-:root{--bg:#ede5e1;--wall:#363730;--ball:#26002b;--dot:#f0654a;--goal:#7c82c4;--text:#26002b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1a1f;--wall:#cfcbc4;--ball:#e9d5ee;--text:#e9d5ee}}
-:root[data-theme="dark"]{--bg:#1b1a1f;--wall:#cfcbc4;--ball:#e9d5ee;--text:#e9d5ee}
+/* tokens – premium palette */
+:root{--page:#1B1920;--bg:#F0E9E3;--wall:#303128;--ball:#F2674F;--dot:#F2674F;--goal:#7C82C4;--hud-bg:#EBD7F0;--text:#26002B;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 *,*::before,*::after{box-sizing:inherit}
 html,body{height:100%;margin:0}
-body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;overflow:hidden}
+body{background:var(--page);color:var(--text);font-family:system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;overflow:hidden}
 /* game area */
 .game{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:40px}
-#stage{perspective:900px}
-#maze{display:block;width:min(86vw,460px);height:auto;transform-style:preserve-3d;will-change:transform;touch-action:none;cursor:grab}
-#maze:active{cursor:grabbing}
+#stage{perspective:900px;touch-action:none;cursor:grab}
+#stage:active{cursor:grabbing}
+#maze{display:block;width:min(86vw,460px);height:auto;transform-style:preserve-3d;will-change:transform;pointer-events:auto;background:var(--bg);border-radius:18px;border:2px solid rgba(48,49,40,.18);box-shadow:0 8px 40px rgba(0,0,0,.35),0 2px 8px rgba(0,0,0,.18)}
 /* d-pad */
 .pad{position:relative;width:130px;height:130px}
 .pad button{position:absolute;width:44px;height:44px;border:0;background:none;padding:0;cursor:pointer;touch-action:none}
-.pad button::after{content:"";position:absolute;inset:8px;background:var(--ball)}
+.pad button::after{content:"";position:absolute;inset:8px;background:var(--hud-bg)}
 .pad .u{left:43px;top:0}.pad .d{left:43px;bottom:0}.pad .l{left:0;top:43px}.pad .r{right:0;top:43px}
 .u::after{clip-path:polygon(50% 20%,100% 70%,0 70%)}
 .d::after{clip-path:polygon(50% 80%,100% 30%,0 30%)}
 .l::after{clip-path:polygon(20% 50%,70% 0,70% 100%)}
 .r::after{clip-path:polygon(80% 50%,30% 0,30% 100%)}
-.pad .hub{position:absolute;left:33px;top:33px;width:64px;height:64px;border-radius:50%;background:var(--ball)}
-.pad .hub i{position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;background:var(--dot);transition:transform .08s}
+.pad .hub{position:absolute;left:33px;top:33px;width:64px;height:64px;border-radius:50%;background:var(--hud-bg)}
+.pad .hub i{position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;background:var(--ball);transition:transform .08s}
 /* hud */
-#hud{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:8px 14px;border-radius:14px;background:var(--ball);color:var(--bg);width:min(86vw,460px);min-height:52px;user-select:none;transition:opacity .3s}
+#hud{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:8px 14px;border-radius:14px;background:var(--hud-bg);color:var(--text);width:min(86vw,460px);min-height:52px;user-select:none;transition:opacity .3s}
 #hud.hud-hidden{opacity:0;pointer-events:none}
 .hud-cell{display:flex;flex-direction:column;align-items:center;gap:1px;flex:1}
 .hud-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;opacity:.5}
 .hud-value{font-size:19px;font-weight:700;line-height:1}
 #hud-timer{transition:color .3s}
 #hud-timer.warning{color:var(--dot)}
-#btn-pause{background:none;border:2px solid rgba(255,255,255,.25);border-radius:8px;color:inherit;cursor:pointer;font-size:16px;width:36px;height:36px;padding:0;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:background .15s}
-#btn-pause:hover{background:rgba(255,255,255,.2)}
+#btn-pause{background:none;border:2px solid rgba(38,0,43,.2);border-radius:8px;color:inherit;cursor:pointer;font-size:16px;width:36px;height:36px;padding:0;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:background .15s}
+#btn-pause:hover{background:rgba(38,0,43,.1)}
 /* overlays */
-.overlay{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:opacity .2s}
+.overlay{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(27,25,32,.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:opacity .2s}
 .overlay.hidden{opacity:0;pointer-events:none}
-.card{background:var(--bg);border-radius:20px;padding:36px 40px;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:330px;width:88%;box-shadow:0 24px 64px rgba(0,0,0,.35)}
+.card{background:var(--bg);border:1px solid rgba(48,49,40,.12);border-radius:20px;padding:36px 40px;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:330px;width:88%;box-shadow:0 24px 64px rgba(0,0,0,.45)}
 .card h1{margin:0;font-size:2.5rem;color:var(--text);letter-spacing:.03em}
 .card h2{margin:0;font-size:1.35rem;color:var(--text)}
 .card p{margin:0;font-size:.9rem;color:var(--text);opacity:.6;text-align:center;line-height:1.55}
@@ -68,7 +66,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <div id="overlay-start" class="overlay" role="dialog" aria-modal="true" aria-labelledby="start-title">
   <div class="card">
     <h1 id="start-title">Tilt&nbsp;Maze</h1>
-    <p>Tilt the board with your cursor or keys. When balls collide, they merge into larger balls. Reach the center before time runs out!</p>
+    <p>Tilt the board with your cursor to roll the 4 balls. Merge all balls into one by making them collide, then guide the final ball to the center circle before time runs out!</p>
     <p class="hint">Cursor tilt &middot; Arrow keys &middot; D-pad on mobile &middot; Esc / P to pause</p>
     <div class="divider"></div>
     <button id="btn-play" class="btn btn-primary">Play Level 1</button>
@@ -92,7 +90,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
     <h2 id="result-title"></h2>
     <div class="stat-row">
       <div class="stat"><div class="stat-v" id="res-time">--</div><div class="stat-l">Time</div></div>
-      <div class="stat"><div class="stat-v" id="res-dots">-/-</div><div class="stat-l">Dots</div></div>
+      <div class="stat"><div class="stat-v" id="res-balls">1</div><div class="stat-l">Balls Left</div></div>
     </div>
     <div class="divider"></div>
     <button id="btn-next"  class="btn btn-primary"  style="display:none">Next Level &#x2192;</button>
@@ -116,41 +114,44 @@ body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;dis
 <div id="hud" class="hud-hidden">
   <div class="hud-cell"><span class="hud-label">Level</span><span class="hud-value" id="hud-level">1</span></div>
   <div class="hud-cell"><span class="hud-label">Time</span><span class="hud-value" id="hud-timer">60</span></div>
-  <div class="hud-cell"><span class="hud-label">Dots</span><span class="hud-value" id="hud-dots">0/4</span></div>
+  <div class="hud-cell"><span class="hud-label">Balls</span><span class="hud-value" id="hud-balls">4</span></div>
   <button id="btn-pause" aria-label="Pause game">&#x23F8;</button>
 </div>
 
 <script>
 // ── Constants & Configuration ───────────────────────────────────────────
-const N=8,S=900,PAD=40,C=(S-PAD*2)/N,LW=16,BASE_R=15,MAX_R=24;
+const N=8,S=900,PAD=40,C=(S-PAD*2)/N,LW=16,BASE_R=12,MAX_R=24;
 const BASE_TIME=60,TIME_STEP=5,MIN_TIME=30;
-const INITIAL_BALL_COUNT=3,ACCEL=0.55,MAX_TILT=12,DEAD_ZONE=0.08;
-
-function getBallCount(lvl){return Math.min(4,INITIAL_BALL_COUNT+Math.floor((lvl-1)/3));}
+const INITIAL_BALL_COUNT=4;
+const ACCEL=0.75,MAX_TILT=13,DEAD_ZONE=0.05,MAX_SPEED=12;
 
 // ── DOM refs ────────────────────────────────────────────────────────────
+const stage=document.getElementById('stage');
 const cv=document.getElementById('maze'),ctx=cv.getContext('2d'),nub=document.getElementById('nub');
-const hudEl=document.getElementById('hud'),hudLevel=document.getElementById('hud-level'),hudTimer=document.getElementById('hud-timer'),hudDots=document.getElementById('hud-dots');
+const hudEl=document.getElementById('hud'),hudLevel=document.getElementById('hud-level'),hudTimer=document.getElementById('hud-timer'),hudBalls=document.getElementById('hud-balls');
 const overlayStart=document.getElementById('overlay-start'),overlayPause=document.getElementById('overlay-pause'),overlayResult=document.getElementById('overlay-result');
 const btnPlay=document.getElementById('btn-play'),btnPause=document.getElementById('btn-pause'),btnResume=document.getElementById('btn-resume'),btnRestart=document.getElementById('btn-restart'),btnNext=document.getElementById('btn-next'),btnRetry=document.getElementById('btn-retry');
-const resBadge=document.getElementById('result-badge'),resTitle=document.getElementById('result-title'),resTime=document.getElementById('res-time'),resDots=document.getElementById('res-dots');
+const resBadge=document.getElementById('result-badge'),resTitle=document.getElementById('result-title'),resTime=document.getElementById('res-time'),resBalls=document.getElementById('res-balls');
 
-// ── Colour cache (Phase-1 Fix 1) ────────────────────────────────────────
-const col={wall:'',ball:'',dot:'',goal:''};
-function refreshColors(){const s=getComputedStyle(document.documentElement);col.wall=s.getPropertyValue('--wall').trim();col.ball=s.getPropertyValue('--ball').trim();col.dot=s.getPropertyValue('--dot').trim();col.goal=s.getPropertyValue('--goal').trim();}
+// ── Colour cache ─────────────────────────────────────────────────────────
+const col={wall:'',ball:'',dot:'',goal:'',bg:''};
+function refreshColors(){const s=getComputedStyle(document.documentElement);col.wall=s.getPropertyValue('--wall').trim();col.ball=s.getPropertyValue('--ball').trim();col.dot=s.getPropertyValue('--dot').trim();col.goal=s.getPropertyValue('--goal').trim();col.bg=s.getPropertyValue('--bg').trim();}
 refreshColors();
 if(window.matchMedia)window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',refreshColors);
 
 // ── Game state ──────────────────────────────────────────────────────────
 let gameState='start',level=1;
-let walls,dots,balls=[],mergeEffects=[],collected,timeLimit;
+let walls=[],balls=[],mergeEffects=[],timeLimit=60;
 const keys={};
 const cursorTilt={x:0,y:0,active:false};
 
-// Timer: performance.now-based, accumulates across pauses.
+// Timer & Frame-rate independent physics time-step
 let timerSnapshot=0,timerStart=0,timeLeft=0;
 let rafId=null;
 let tx=0,ty=0;
+let lastFrameTime=performance.now();
+const FIXED_STEP=1000/60; // 60 updates/sec regardless of display refresh rate
+let accumulator=0;
 
 // ── Timer helpers ───────────────────────────────────────────────────────
 function timeLimitForLevel(lvl){return Math.max(MIN_TIME,BASE_TIME-(lvl-1)*TIME_STEP);}
@@ -159,7 +160,7 @@ function startTimer(){timerSnapshot=0;timerStart=performance.now();}
 function pauseTimer(){timerSnapshot=elapsedMs();}
 function resumeTimer(){timerStart=performance.now();}
 
-// ── Maze generation & multi-ball spawn ──────────────────────────────────
+// ── Maze generation & 4 orange balls spawn ──────────────────────────────
 function buildMaze(){
   const cells=Array.from({length:N},()=>Array.from({length:N},()=>({t:1,r:1,b:1,l:1,v:0})));
   const stack=[[0,0]];cells[0][0].v=1;
@@ -183,12 +184,19 @@ function buildMaze(){
     if(x===N-1&&c.r)walls.push([...P(x+1,y),...P(x+1,y+1)]);
   }
 
-  // Spawn initial balls in distinct corner cells
-  const count=getBallCount(level);
-  const spawnCoords=[[0,0],[N-1,0],[0,N-1],[N-1,N-1]];
+  // Spawn 4 orange balls in distinct quadrants (avoiding 2x2 center goal)
+  const mid=N/2;
+  const quads=[[],[],[],[]];
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    if(x>=mid-1&&x<=mid&&y>=mid-1&&y<=mid)continue;
+    const q=(y<mid?0:2)+(x<mid?0:1);
+    quads[q].push([x,y]);
+  }
+
   balls=[];
-  for(let i=0;i<count;i++){
-    const[cx,cy]=spawnCoords[i%spawnCoords.length];
+  for(let q=0;q<INITIAL_BALL_COUNT;q++){
+    const list=quads[q];
+    const[cx,cy]=list[Math.floor(Math.random()*list.length)];
     balls.push({
       x:PAD+(cx+0.5)*C,
       y:PAD+(cy+0.5)*C,
@@ -198,18 +206,8 @@ function buildMaze(){
     });
   }
   mergeEffects=[];
-
-  // Place collectibles in free cells (avoiding ball spawns and 2x2 center goal)
-  const mid=N/2;const free=[];
-  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
-    const isSpawn=spawnCoords.slice(0,count).some(([sx,sy])=>sx===x&&sy===y);
-    const isGoal=(x>=mid-1&&x<=mid&&y>=mid-1&&y<=mid);
-    if(!isSpawn&&!isGoal)free.push([x,y]);
-  }
-  free.sort(()=>Math.random()-.5);
-  dots=free.slice(0,4).map(([x,y])=>({x:PAD+(x+.5)*C,y:PAD+(y+.5)*C,got:false}));
-  collected=0;
-  timeLimit=timeLimitForLevel(level);timeLeft=timeLimit;
+  timeLimit=timeLimitForLevel(level);
+  timeLeft=timeLimit;
 }
 
 // ── Collision detection per ball ─────────────────────────────────────────
@@ -226,7 +224,11 @@ function collideBall(b){
       if(d===0){ex=1;ey=0;}else{ex/=d;ey/=d;}
       b.x=px+ex*min;b.y=py+ey*min;
       const vn=b.vx*ex+b.vy*ey;
-      if(vn<0){b.vx-=vn*ex*1.3;b.vy-=vn*ey*1.3;}
+      if(vn<0){
+        // Smoothly cancel normal penetration velocity so ball glides freely along walls and corners
+        b.vx-=vn*ex;
+        b.vy-=vn*ey;
+      }
     }
   }
   const lo=PAD-LW/2+b.r,hi=S-PAD+LW/2-b.r;
@@ -251,13 +253,14 @@ function processMerges(){
           const ny=(b1.y*m1+b2.y*m2)/mTot;
           const nvx=(b1.vx*m1+b2.vx*m2)/mTot;
           const nvy=(b1.vy*m1+b2.vy*m2)/mTot;
-          const nr=Math.min(MAX_R,Math.sqrt(mTot));
+          const nr=Math.min(MAX_R,Math.round(Math.sqrt(mTot)*100)/100);
           const nb={x:nx,y:ny,vx:nvx,vy:nvy,r:nr};
           collideBall(nb);
           mergeEffects.push({x:nb.x,y:nb.y,r:nr,maxR:nr*2.2,life:1});
           balls.splice(j,1);
           balls.splice(i,1,nb);
           merged=true;
+          updateHud();
           break;
         }
       }
@@ -266,79 +269,99 @@ function processMerges(){
   }
 }
 
-// ── Main loop ───────────────────────────────────────────────────────────
-function step(){
+// ── Physics update tick (fixed 60Hz step) ────────────────────────────────
+function physicsTick(){
+  // Input acceleration (cursor tilt + keyboard / D-pad fallback)
+  let ax=cursorTilt.active?cursorTilt.x*ACCEL:0;
+  let ay=cursorTilt.active?cursorTilt.y*ACCEL:0;
+  if(keys.ArrowLeft)ax-=ACCEL;if(keys.ArrowRight)ax+=ACCEL;
+  if(keys.ArrowUp)ay-=ACCEL;if(keys.ArrowDown)ay+=ACCEL;
+
+  // Natural momentum & acceleration
+  for(const b of balls){
+    b.vx+=ax;
+    b.vy+=ay;
+    b.vx*=.92; // Natural friction
+    b.vy*=.92;
+    const spd=Math.hypot(b.vx,b.vy);
+    if(spd>MAX_SPEED){
+      b.vx=(b.vx/spd)*MAX_SPEED;
+      b.vy=(b.vy/spd)*MAX_SPEED;
+    }
+  }
+
+  const sub=3;
+  for(let i=0;i<sub;i++){
+    for(const b of balls){
+      b.x+=b.vx/sub;
+      b.y+=b.vy/sub;
+      collideBall(b);
+    }
+    processMerges();
+  }
+}
+
+// ── Visual tilt & analog nub synchronization ────────────────────────────
+function updateVisualTilt(){
+  const avgVx=balls.reduce((s,b)=>s+b.vx,0)/(balls.length||1);
+  const avgVy=balls.reduce((s,b)=>s+b.vy,0)/(balls.length||1);
+  let targetTx=0,targetTy=0;
+  if(cursorTilt.active){
+    targetTx=cursorTilt.y*MAX_TILT;
+    targetTy=-cursorTilt.x*MAX_TILT;
+  }else{
+    targetTx=Math.max(-MAX_TILT,Math.min(MAX_TILT,avgVy*1.5));
+    targetTy=Math.max(-MAX_TILT,Math.min(MAX_TILT,-avgVx*1.5));
+  }
+  // Fast, responsive interpolation without sluggish lag
+  tx+=(targetTx-tx)*.25;
+  ty+=(targetTy-ty)*.25;
+  cv.style.transform=`rotateX(${8-tx}deg) rotateY(${-4+-ty}deg) rotateZ(-1deg)`;
+
+  const nubX=cursorTilt.active?cursorTilt.x*20:avgVx*2;
+  const nubY=cursorTilt.active?cursorTilt.y*20:avgVy*2;
+  nub.style.transform=`translate(${20+Math.max(-20,Math.min(20,nubX))}px,${20+Math.max(-20,Math.min(20,nubY))}px)`;
+}
+
+// ── Main game loop ───────────────────────────────────────────────────────
+function step(now=performance.now()){
   if(gameState==='playing'){
     // Timer tick
     timeLeft=Math.max(0,timeLimit-elapsedMs()/1000);
     updateHud();
 
-    // Timeout: freeze all balls, draw final frame, stop loop.
+    // Timeout check
     if(timeLeft<=0){
       for(const b of balls){b.vx=0;b.vy=0;}
       triggerTimeout();draw();return;
     }
 
-    // Input acceleration (cursor tilt + keyboard / D-pad fallback)
-    let ax=cursorTilt.active?cursorTilt.x*ACCEL:0;
-    let ay=cursorTilt.active?cursorTilt.y*ACCEL:0;
-    if(keys.ArrowLeft)ax-=ACCEL;if(keys.ArrowRight)ax+=ACCEL;
-    if(keys.ArrowUp)ay-=ACCEL;if(keys.ArrowDown)ay+=ACCEL;
-    ax=Math.max(-ACCEL*1.5,Math.min(ACCEL*1.5,ax));
-    ay=Math.max(-ACCEL*1.5,Math.min(ACCEL*1.5,ay));
+    // Refresh-rate-independent physics accumulator
+    const dt=Math.min(50,now-lastFrameTime);
+    lastFrameTime=now;
+    accumulator+=dt;
 
-    // Physics for all balls
-    for(const b of balls){
-      b.vx+=ax;b.vy+=ay;
-      b.vx*=.9;b.vy*=.9;
-    }
-    const sub=3;
-    for(let i=0;i<sub;i++){
-      for(const b of balls){
-        b.x+=b.vx/sub;b.y+=b.vy/sub;
-        collideBall(b);
-      }
-      processMerges();
+    while(accumulator>=FIXED_STEP){
+      physicsTick();
+      accumulator-=FIXED_STEP;
     }
 
-    // Collectibles (any ball can collect dots)
-    for(const d of dots){
-      if(!d.got){
-        for(const b of balls){
-          if(Math.hypot(d.x-b.x,d.y-b.y)<b.r+10){
-            d.got=true;collected++;updateHud();break;
-          }
-        }
-      }
-    }
-
-    // Goal: any ball entering the center circle wins the level
-    for(const b of balls){
+    // Goal: all balls must merge into one, then reach the center circle
+    if(balls.length===1){
+      const b=balls[0];
       if(Math.hypot(b.x-S/2,b.y-S/2)<C*.6){
-        for(const ball of balls){ball.vx=0;ball.vy=0;}
+        b.vx=0;b.vy=0;
         triggerWin();draw();return;
       }
     }
 
-    // Tilt interpolation & nub tracking
-    const avgVx=balls.reduce((s,b)=>s+b.vx,0)/(balls.length||1);
-    const avgVy=balls.reduce((s,b)=>s+b.vy,0)/(balls.length||1);
-    let targetTx=0,targetTy=0;
-    if(cursorTilt.active){
-      targetTx=cursorTilt.y*MAX_TILT;
-      targetTy=-cursorTilt.x*MAX_TILT;
-    }else{
-      targetTx=avgVy*1.4;
-      targetTy=-avgVx*1.4;
-    }
-    tx+=(targetTx-tx)*.1;
-    ty+=(targetTy-ty)*.1;
-    cv.style.transform=`rotateX(${8-tx}deg) rotateY(${-4+-ty}deg) rotateZ(-1deg)`;
-
-    const nubX=cursorTilt.active?cursorTilt.x*20:avgVx*2.2;
-    const nubY=cursorTilt.active?cursorTilt.y*20:avgVy*2.2;
-    nub.style.transform=`translate(${20+Math.max(-20,Math.min(20,nubX))}px,${20+Math.max(-20,Math.min(20,nubY))}px)`;
+    // Synchronize visual board tilt
+    updateVisualTilt();
+  }else{
+    lastFrameTime=now;
+    accumulator=0;
   }
+
   draw();
   rafId=requestAnimationFrame(step);
 }
@@ -351,8 +374,6 @@ function draw(){
   walls.forEach(w=>line(...w));
   ctx.save();ctx.setLineDash([22,18]);ctx.lineWidth=7;ctx.strokeStyle=col.goal;
   ctx.beginPath();ctx.arc(S/2,S/2,C*.6,0,Math.PI*2);ctx.stroke();ctx.restore();
-  ctx.fillStyle=col.dot;
-  for(const d of dots)if(!d.got){ctx.beginPath();ctx.arc(d.x,d.y,10,0,Math.PI*2);ctx.fill();}
 
   // Merge ripple effects
   for(let i=mergeEffects.length-1;i>=0;i--){
@@ -370,17 +391,11 @@ function draw(){
     if(ef.life<=0)mergeEffects.splice(i,1);
   }
 
-  // Active balls
+  // Active solid orange balls
+  ctx.fillStyle=col.dot;
   for(const b of balls){
-    ctx.fillStyle=col.ball;
     ctx.beginPath();
     ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
-    ctx.fill();
-    const hlOff=Math.round(b.r*0.4);
-    const hlR=Math.max(3,Math.round(b.r*0.38));
-    ctx.fillStyle=col.dot;
-    ctx.beginPath();
-    ctx.arc(b.x-hlOff,b.y-hlOff,hlR,0,Math.PI*2);
     ctx.fill();
   }
 }
@@ -388,7 +403,7 @@ function draw(){
 // ── HUD ─────────────────────────────────────────────────────────────────
 function updateHud(){
   hudLevel.textContent=level;
-  hudDots.textContent=`${collected}/${dots.length}`;
+  hudBalls.textContent=balls.length;
   hudTimer.textContent=Math.ceil(timeLeft);
   hudTimer.classList.toggle('warning',timeLeft>0&&timeLeft<=10);
 }
@@ -397,7 +412,7 @@ function updateHud(){
 const showOverlay=el=>el.classList.remove('hidden');
 const hideOverlay=el=>el.classList.add('hidden');
 const showHud=()=>hudEl.classList.remove('hud-hidden');
-function ensureLoop(){if(rafId===null)rafId=requestAnimationFrame(step);}
+function ensureLoop(){if(rafId===null){lastFrameTime=performance.now();accumulator=0;rafId=requestAnimationFrame(step);}}
 function cancelLoop(){if(rafId!==null){cancelAnimationFrame(rafId);rafId=null;}}
 function resetCursorTilt(){cursorTilt.x=0;cursorTilt.y=0;cursorTilt.active=false;}
 
@@ -410,6 +425,8 @@ function startGame(){
   showHud();updateHud();
   gameState='playing';
   startTimer();
+  lastFrameTime=performance.now();
+  accumulator=0;
   ensureLoop();
 }
 
@@ -425,7 +442,10 @@ function resumeGame(){
   if(gameState!=='paused')return;
   resetCursorTilt();
   hideOverlay(overlayPause);
-  gameState='playing';resumeTimer();ensureLoop();
+  gameState='playing';resumeTimer();
+  lastFrameTime=performance.now();
+  accumulator=0;
+  ensureLoop();
 }
 
 function restartLevel(){
@@ -434,7 +454,10 @@ function restartLevel(){
   hideOverlay(overlayPause);hideOverlay(overlayResult);
   tx=0;ty=0;cv.style.transform='rotateX(8deg) rotateY(-4deg) rotateZ(-1deg)';
   buildMaze();updateHud();
-  gameState='playing';startTimer();ensureLoop();
+  gameState='playing';startTimer();
+  lastFrameTime=performance.now();
+  accumulator=0;
+  ensureLoop();
 }
 
 function triggerWin(){
@@ -446,7 +469,7 @@ function triggerWin(){
   resBadge.textContent='\u2713\u2002Level Complete';
   resTitle.textContent=`Level ${level} Clear!`;
   resTime.textContent=formatTime(timerSnapshot);
-  resDots.textContent=`${collected}/${dots.length}`;
+  resBalls.textContent=balls.length;
   btnNext.style.display='';btnRetry.style.display='none';
   showOverlay(overlayResult);
 }
@@ -459,7 +482,7 @@ function triggerTimeout(){
   resBadge.textContent='\u2715\u2002Time\u2019s Up';
   resTitle.textContent=`Level ${level}`;
   resTime.textContent=formatTime(timeLimit*1000);
-  resDots.textContent=`${collected}/${dots.length}`;
+  resBalls.textContent=balls.length;
   btnNext.style.display='none';btnRetry.style.display='';
   showOverlay(overlayResult);
 }
@@ -470,7 +493,10 @@ function nextLevel(){
   hideOverlay(overlayResult);
   tx=0;ty=0;cv.style.transform='rotateX(8deg) rotateY(-4deg) rotateZ(-1deg)';
   buildMaze();updateHud();
-  gameState='playing';startTimer();ensureLoop();
+  gameState='playing';startTimer();
+  lastFrameTime=performance.now();
+  accumulator=0;
+  ensureLoop();
 }
 
 function formatTime(ms){
@@ -478,10 +504,10 @@ function formatTime(ms){
   return `${s}.${dec}s`;
 }
 
-// ── Continuous cursor tilt control ───────────────────────────────────────
-cv.addEventListener('pointermove',e=>{
+// ── Continuous cursor tilt control (tracked on stable stage viewport) ───
+function handlePointer(e){
   if(gameState!=='playing')return;
-  const rect=cv.getBoundingClientRect();
+  const rect=stage.getBoundingClientRect();
   const cx=rect.left+rect.width/2;
   const cy=rect.top+rect.height/2;
   let nx=(e.clientX-cx)/(rect.width/2);
@@ -497,9 +523,12 @@ cv.addEventListener('pointermove',e=>{
     cursorTilt.y=(ny/dist)*scale;
   }
   cursorTilt.active=true;
-});
-cv.addEventListener('pointerleave',resetCursorTilt);
-cv.addEventListener('pointercancel',resetCursorTilt);
+}
+
+stage.addEventListener('pointermove',handlePointer);
+cv.addEventListener('pointermove',handlePointer);
+stage.addEventListener('pointerleave',resetCursorTilt);
+stage.addEventListener('pointercancel',resetCursorTilt);
 
 // ── Visibility / focus ──────────────────────────────────────────────────
 document.addEventListener('visibilitychange',()=>{
@@ -509,7 +538,7 @@ document.addEventListener('visibilitychange',()=>{
     else cancelLoop();
   }else{
     for(const k in keys)delete keys[k];
-    if(gameState==='start'||gameState==='playing')ensureLoop();
+    if(gameState==='start'||gameState==='playing'){lastFrameTime=performance.now();accumulator=0;ensureLoop();}
   }
 });
 window.addEventListener('blur',()=>{
