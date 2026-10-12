@@ -1,19 +1,29 @@
 // backend/scripts/createAdmin.js
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import Admin from '../models/Admin.js';
 
-dotenv.config();
+// Resolve __dirname in ES‑module context
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load .env located in the backend root
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 const EMAIL = 'admin@test.com';
 const PASSWORD = 'Admin123!'; // change if desired
 
 const run = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      console.error('❌ MONGODB_URI not defined in environment');
+      process.exit(1);
+    }
+    // Connect using the same options as the backend (no extra flags needed)
+    await mongoose.connect(mongoUri, { dbName: 'tiltmaze' });
     // Check if admin already exists
     const existing = await Admin.findOne({ email: EMAIL });
     if (existing) {
