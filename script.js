@@ -212,6 +212,7 @@ function collideBall(b) {
         // Smoothly cancel normal penetration velocity so ball glides freely along walls and corners
         b.vx -= vn * ex;
         b.vy -= vn * ey;
+        if (-vn > 1.2) window.AudioManager?.playSfx("bump", -vn / MAX_SPEED);
       }
     }
   }
@@ -265,6 +266,7 @@ function processMerges() {
           });
           balls.splice(j, 1);
           balls.splice(i, 1, nb);
+          window.AudioManager?.playSfx("merge");
           merged = true;
           updateHud();
           break;
@@ -307,6 +309,8 @@ function physicsTick() {
     }
     processMerges();
   }
+
+  window.AudioManager?.playSfx("roll", balls.reduce((total, ball) => total + Math.hypot(ball.vx, ball.vy), 0) / (balls.length || 1));
 }
 
 // ── Visual tilt & analog nub synchronization ────────────────────────────
@@ -338,6 +342,7 @@ function step(now = performance.now()) {
     // Timer tick
     timeLeft = Math.max(0, timeLimit - elapsedMs() / 1000);
     updateHud();
+    if (timeLeft > 0 && timeLeft <= 10) window.AudioManager?.playSfx("lowTime", Math.ceil(timeLeft));
 
     // Timeout check
     if (timeLeft <= 0) {
@@ -366,6 +371,7 @@ function step(now = performance.now()) {
       if (Math.hypot(b.x - S / 2, b.y - S / 2) < C * 0.6) {
         b.vx = 0;
         b.vy = 0;
+        window.AudioManager?.playSfx("goal");
         triggerWin();
         draw();
         return;
@@ -493,6 +499,8 @@ function resetCursorTilt() {
 
 // ── State transitions ────────────────────────────────────────────────────
 function startGame() {
+  window.AudioManager?.init();
+  window.AudioManager?.startMusic();
   level = 1;
   resetCursorTilt();
   buildMaze();
@@ -508,6 +516,7 @@ function startGame() {
 
 function pauseGame() {
   if (gameState !== "playing") return;
+  window.AudioManager?.stopMusic();
   resetCursorTilt();
   pauseTimer();
   gameState = "paused";
@@ -517,6 +526,8 @@ function pauseGame() {
 
 function resumeGame() {
   if (gameState !== "paused") return;
+  window.AudioManager?.init();
+  window.AudioManager?.startMusic();
   resetCursorTilt();
   hideOverlay(overlayPause);
   gameState = "playing";
@@ -527,6 +538,8 @@ function resumeGame() {
 }
 
 function restartLevel() {
+  window.AudioManager?.init();
+  window.AudioManager?.startMusic();
   cancelLoop();
   resetCursorTilt();
   hideOverlay(overlayPause);
@@ -544,6 +557,8 @@ function restartLevel() {
 }
 
 function triggerWin() {
+  window.AudioManager?.playSfx("levelComplete");
+  window.AudioManager?.stopMusic();
   pauseTimer();
   gameState = "won";
   resetCursorTilt();
@@ -559,6 +574,8 @@ function triggerWin() {
 }
 
 function triggerTimeout() {
+  window.AudioManager?.playSfx("gameOver");
+  window.AudioManager?.stopMusic();
   gameState = "timeout";
   resetCursorTilt();
   cancelLoop();
@@ -573,6 +590,8 @@ function triggerTimeout() {
 }
 
 function nextLevel() {
+  window.AudioManager?.init();
+  window.AudioManager?.startMusic();
   level++;
   resetCursorTilt();
   hideOverlay(overlayResult);

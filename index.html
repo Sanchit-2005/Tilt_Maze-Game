@@ -18,6 +18,22 @@
     <link rel="stylesheet" href="intro.css" />
   </head>
   <body>
+    <button
+      id="btn-audio-toggle"
+      class="audio-toggle"
+      type="button"
+      aria-label="Mute sound"
+      aria-pressed="false"
+      title="Toggle sound (M)"
+    >
+      <svg class="audio-toggle__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path class="audio-toggle__speaker" d="M4 9.5h4L13 5v14l-5-4.5H4z" />
+        <path class="audio-toggle__waves" d="M16 9a4 4 0 0 1 0 6m2.5-8.5a7.5 7.5 0 0 1 0 11" />
+        <path class="audio-toggle__slash" d="m4 4 16 16" />
+      </svg>
+      <span class="audio-toggle__label">Sound</span>
+    </button>
+
     <!-- Opening splash: isolated from the game, tutorial, and HUD. -->
     <div id="intro-splash" class="intro-splash" role="status" aria-label="Tilt Rush introduction">
       <div class="intro-splash__content">
@@ -190,6 +206,7 @@
       <button id="btn-pause" aria-label="Pause game">&#x23F8;</button>
     </div>
 
+    <script src="audio.js" defer></script>
     <script src="script.js" defer></script>
     <script src="tutorial.js" defer></script>
     <script src="intro.js" defer></script>
