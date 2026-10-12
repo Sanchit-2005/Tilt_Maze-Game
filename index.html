@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Tilt Maze</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Start overlay -->
+    <div
+      id="overlay-start"
+      class="overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="start-title"
+    >
+      <div class="card">
+        <h1 id="start-title">Tilt&nbsp;Maze</h1>
+        <p>
+          Tilt the board with your cursor to roll the 4 balls. Merge all balls
+          into one by making them collide, then guide the final ball to the
+          center circle before time runs out!
+        </p>
+        <p class="hint">
+          Cursor tilt &middot; Arrow keys &middot; D-pad on mobile &middot; Esc
+          / P to pause
+        </p>
+        <div class="divider"></div>
+        <button id="btn-play" class="btn btn-primary">Play Level 1</button>
+      </div>
+    </div>
+
+    <!-- Pause overlay -->
+    <div
+      id="overlay-pause"
+      class="overlay hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Game paused"
+    >
+      <div class="card">
+        <h2>Paused</h2>
+        <div class="divider"></div>
+        <button id="btn-resume" class="btn btn-primary">Resume</button>
+        <button id="btn-restart" class="btn btn-secondary">
+          Restart Level
+        </button>
+      </div>
+    </div>
+
+    <!-- Result overlay -->
+    <div
+      id="overlay-result"
+      class="overlay hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Round result"
+    >
+      <div class="card">
+        <span id="result-badge" class="badge"></span>
+        <h2 id="result-title"></h2>
+        <div class="stat-row">
+          <div class="stat">
+            <div class="stat-v" id="res-time">--</div>
+            <div class="stat-l">Time</div>
+          </div>
+          <div class="stat">
+            <div class="stat-v" id="res-balls">1</div>
+            <div class="stat-l">Balls Left</div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <button id="btn-next" class="btn btn-primary" style="display: none">
+          Next Level &#x2192;
+        </button>
+        <button id="btn-retry" class="btn btn-secondary" style="display: none">
+          Retry
+        </button>
+      </div>
+    </div>
+
+    <!-- Game -->
+    <div class="game">
+      <div id="stage"><canvas id="maze" width="900" height="900"></canvas></div>
+      <div class="pad" id="pad">
+        <button class="u" data-k="ArrowUp" aria-label="Move up"></button>
+        <button class="d" data-k="ArrowDown" aria-label="Move down"></button>
+        <button class="l" data-k="ArrowLeft" aria-label="Move left"></button>
+        <button class="r" data-k="ArrowRight" aria-label="Move right"></button>
+        <div class="hub"><i id="nub"></i></div>
+      </div>
+    </div>
+
+    <!-- HUD bar -->
+    <div id="hud" class="hud-hidden">
+      <div class="hud-cell">
+        <span class="hud-label">Level</span
+        ><span class="hud-value" id="hud-level">1</span>
+      </div>
+      <div class="hud-cell">
+        <span class="hud-label">Time</span
+        ><span class="hud-value" id="hud-timer">60</span>
+      </div>
+      <div class="hud-cell">
+        <span class="hud-label">Balls</span
+        ><span class="hud-value" id="hud-balls">4</span>
+      </div>
+      <button id="btn-pause" aria-label="Pause game">&#x23F8;</button>
+    </div>
+
+    <script src="script.js" defer></script>
+  </body>
+</html>
