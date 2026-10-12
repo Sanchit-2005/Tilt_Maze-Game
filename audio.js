@@ -164,34 +164,51 @@
     if (context?.state === "suspended") context.resume().catch(NOOP);
   }
 
-  function startMusic() {
+  function startMusic(immediate = false) {
     init();
     if (muted || !music || musicUnavailable) return;
 
+    if (musicFadeFrame !== null) {
+      cancelAnimationFrame(musicFadeFrame);
+      musicFadeFrame = null;
+    }
     const playback = music.play();
     if (playback && typeof playback.catch === "function") playback.catch(NOOP);
-    fadeMusic(MUSIC_VOLUME, 300);
+    if (immediate) music.volume = MUSIC_VOLUME;
+    else fadeMusic(MUSIC_VOLUME, 300);
   }
 
-  function stopMusic() {
-    if (!music || music.paused) return;
+  function stopMusic(immediate = false) {
+    if (!music) return;
+    if (immediate) {
+      if (musicFadeFrame !== null) {
+        cancelAnimationFrame(musicFadeFrame);
+        musicFadeFrame = null;
+      }
+      music.volume = 0;
+      music.pause();
+      return;
+    }
+    if (music.paused) return;
     fadeMusic(0, 180, () => music?.pause());
   }
 
-  function setMuted(nextMuted) {
+  function setMuted(nextMuted, immediate = false) {
     muted = Boolean(nextMuted);
     saveMutedState();
     syncToggle();
 
     if (muted) {
       updateRolling(0);
-      stopMusic();
+      stopMusic(immediate);
     }
   }
 
   function toggle() {
-    setMuted(!muted);
-    if (!muted) startMusic();
+    init();
+    const isPlaying = Boolean(music && !music.paused && !music.ended);
+    setMuted(isPlaying, true);
+    if (!isPlaying) startMusic(true);
     return muted;
   }
 

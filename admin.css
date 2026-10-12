@@ -72,6 +72,22 @@
   color: var(--admin-muted);
 }
 
+#admin-app .admin-test-note {
+  margin: 1rem 0;
+  border: 1px solid rgba(255, 118, 88, 0.5);
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  color: var(--admin-cream);
+  background: rgba(255, 118, 88, 0.1);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+#admin-app .admin-test-note code {
+  color: var(--admin-orange);
+  overflow-wrap: anywhere;
+}
+
 #admin-app .field {
   margin: 26px 0 16px;
 }
