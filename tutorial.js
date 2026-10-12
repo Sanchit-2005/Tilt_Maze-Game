@@ -24,6 +24,11 @@
         "Follow open corridors carefully. A ball stops when it meets a wall, so plan your route before tilting.",
     },
     {
+      title: "One Ball Left",
+      message:
+        "When only one ball remains, guide it carefully toward the center to finish the maze.",
+    },
+    {
       title: "Final Ball and Victory",
       message:
         "Watch the last ball reach the center. Only then is the maze complete.",
@@ -39,6 +44,11 @@
   const nextButton = document.getElementById("btn-tutorial-next");
   const skipButton = document.getElementById("btn-tutorial-skip");
   const startButton = document.getElementById("btn-start-game");
+  const content = document.getElementById("tutorial-content");
+  const caption = document.getElementById("tutorial-caption");
+  const progressBar = document.getElementById("tutorial-progress-bar");
+  const progressDots = document.getElementById("tutorial-progress-dots");
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   if (
     !overlay ||
@@ -49,7 +59,11 @@
     !previousButton ||
     !nextButton ||
     !skipButton ||
-    !startButton
+    !startButton ||
+    !content ||
+    !caption ||
+    !progressBar ||
+    !progressDots
   ) {
     return;
   }
@@ -71,6 +85,8 @@
     scene: null,
     frameId: null,
     lastTime: 0,
+    transitioning: false,
+    transitionTimer: null,
   };
 
   function ball(x, y, radius = 14) {
@@ -78,6 +94,7 @@
   }
 
   function createScene(step) {
+    if (step === 6) return createScene(5);
     if (step === 2) {
       return { time: 0, balls: [ball(150, 132, 13), ball(295, 190, 13), ball(488, 128, 13), ball(585, 355, 13)] };
     }
@@ -129,16 +146,76 @@
     return { time: 0, balls: [ball(150, 130, 13), ball(570, 130, 13), ball(150, 370, 13), ball(570, 370, 13)] };
   }
 
-  function setStep(nextStep) {
-    state.step = Math.max(0, Math.min(steps.length - 1, nextStep));
+  function updateCaption() {
+    let nextCaption = "";
+
+    if (state.step === 0) nextCaption = "Orange balls";
+    if (state.step === 1) nextCaption = "Tilt the board to guide the ball";
+    if (state.step === 2) {
+      const count = state.scene.balls.length;
+      nextCaption = `${count} ball${count === 1 ? "" : "s"} in the demonstration`;
+    }
+    if (state.step === 3) {
+      nextCaption = state.scene.phase === "pause-at-wall"
+        ? "Wall - choose another route"
+        : "Follow the open route";
+    }
+    if (state.step === 4) nextCaption = "One ball left - aim for the center";
+    if (state.step === 5) nextCaption = "Bring the final ball home";
+
+    if (caption.textContent !== nextCaption) caption.textContent = nextCaption;
+  }
+
+  function updateProgress() {
+    const progress = ((state.step + 1) / steps.length) * 100;
+    indicator.textContent = `${state.step + 1} / ${steps.length}`;
+    progressBar.style.setProperty("--tutorial-progress", `${progress}%`);
+    progressDots.replaceChildren();
+
+    const dots = document.createDocumentFragment();
+    steps.forEach((_, index) => {
+      const dot = document.createElement("span");
+      dot.className = "tutorial-progress-dot";
+      dot.classList.toggle("is-active", index === state.step);
+      dot.setAttribute("aria-hidden", "true");
+      dots.append(dot);
+    });
+    progressDots.append(dots);
+    progressDots.setAttribute("aria-label", `Tutorial progress: ${state.step + 1} of ${steps.length}`);
+  }
+
+  function applyStep(nextStep) {
+    state.step = nextStep;
     state.scene = createScene(state.step + 1);
     const current = steps[state.step];
     title.textContent = current.title;
     message.textContent = current.message;
-    indicator.textContent = `Step ${state.step + 1} of ${steps.length}`;
+    updateProgress();
+    updateCaption();
     previousButton.disabled = state.step === 0;
-    nextButton.classList.toggle("hidden", state.step === steps.length - 1);
-    startButton.classList.toggle("hidden", state.step !== steps.length - 1);
+    const isLastStep = state.step === steps.length - 1;
+    nextButton.textContent = isLastStep ? "Start Game" : "Next";
+    nextButton.classList.toggle("tutorial-start", isLastStep);
+    startButton.classList.add("hidden");
+  }
+
+  function setStep(nextStep, shouldAnimate = true) {
+    const targetStep = Math.max(0, Math.min(steps.length - 1, nextStep));
+    if (state.transitioning || (targetStep === state.step && state.scene)) return;
+
+    if (!shouldAnimate || !state.active || prefersReducedMotion.matches) {
+      applyStep(targetStep);
+      return;
+    }
+
+    state.transitioning = true;
+    content.classList.add("is-transitioning");
+    state.transitionTimer = window.setTimeout(() => {
+      applyStep(targetStep);
+      content.classList.remove("is-transitioning");
+      state.transitioning = false;
+      state.transitionTimer = null;
+    }, 125);
   }
 
   function drawBoardBase() {
@@ -190,10 +267,27 @@
       context.arc(item.x, item.y, item.radius + 13, 0, Math.PI * 2);
       context.fill();
     }
-    context.fillStyle = palette.ball;
+    const fill = context.createRadialGradient(
+      item.x - item.radius * 0.35,
+      item.y - item.radius * 0.4,
+      Math.max(1, item.radius * 0.12),
+      item.x,
+      item.y,
+      item.radius,
+    );
+    fill.addColorStop(0, "#ffd8b9");
+    fill.addColorStop(0.32, "#ff9a72");
+    fill.addColorStop(0.72, palette.ball);
+    fill.addColorStop(1, "#d85042");
+    context.save();
+    context.fillStyle = fill;
+    context.shadowColor = "rgba(122, 48, 40, 0.48)";
+    context.shadowBlur = 10;
+    context.shadowOffsetY = 4;
     context.beginPath();
     context.arc(item.x, item.y, item.radius, 0, Math.PI * 2);
     context.fill();
+    context.restore();
   }
 
   function drawBurst(burst) {
@@ -381,6 +475,7 @@
     if (state.step === 2) updateMerging(scene, delta);
     if (state.step === 3) updateNavigation(scene, delta);
     if (state.step === 4) updateVictory(scene, delta);
+    if (state.step === 5) updateVictory(scene, delta);
   }
 
   function drawMeetMaze(scene) {
@@ -392,10 +487,6 @@
     drawWalls(walls);
     drawGoal();
     scene.balls.forEach((item) => drawBall(item, true));
-    context.fillStyle = palette.text;
-    context.font = "700 16px system-ui";
-    context.textAlign = "center";
-    context.fillText("Orange balls", 360, 485);
   }
 
   function drawDirectionalArrow(x, y, rotation, active) {
@@ -430,8 +521,10 @@
     drawDirectionalArrow(151, 365, Math.PI / 2, activeDirection > 0);
     drawDirectionalArrow(115, 401, Math.PI, activeDirection > 0);
     drawDirectionalArrow(79, 365, -Math.PI / 2, activeDirection < 0);
-    context.fillStyle = palette.text; context.font = "700 14px system-ui"; context.textAlign = "center";
-    context.fillText("Tilt", 115, 370);
+    context.fillStyle = "rgba(26, 25, 36, 0.84)";
+    context.fillRect(80, 431, 70, 25);
+    context.fillStyle = "#fff7ed"; context.font = "800 16px system-ui"; context.textAlign = "center";
+    context.fillText("Tilt", 115, 449);
   }
 
   function drawMerging(scene) {
@@ -440,8 +533,6 @@
     drawGoal();
     scene.bursts.forEach(drawBurst);
     scene.balls.forEach((item) => drawBall(item, item.glow > 0));
-    context.fillStyle = palette.text; context.font = "700 15px system-ui"; context.textAlign = "center";
-    context.fillText(`${scene.balls.length} ball${scene.balls.length === 1 ? "" : "s"} in the demonstration`, 360, 484);
   }
 
   function drawNavigation(scene) {
@@ -455,10 +546,6 @@
     context.beginPath(); context.moveTo(250, 315); context.lineTo(345, 315); context.lineTo(540, 315); context.lineTo(540, 280); context.lineTo(620, 280); context.lineTo(620, 145); context.stroke();
     context.restore();
     drawBall(scene.ball, scene.collisionFlash > 0);
-    if (scene.phase === "pause-at-wall") {
-      context.fillStyle = palette.ball; context.font = "700 16px system-ui"; context.textAlign = "center";
-      context.fillText("Wall — choose another route", 360, 484);
-    }
   }
 
   function drawVictory(scene) {
@@ -496,10 +583,17 @@
     if (state.step === 2) drawMerging(state.scene);
     if (state.step === 3) drawNavigation(state.scene);
     if (state.step === 4) drawVictory(state.scene);
+    if (state.step === 5) drawVictory(state.scene);
+    updateCaption();
   }
 
   function tick(timestamp) {
     if (!state.active) return;
+    if (prefersReducedMotion.matches) {
+      drawScene();
+      state.frameId = null;
+      return;
+    }
     const delta = Math.min(0.05, (timestamp - state.lastTime) / 1000 || 0);
     state.lastTime = timestamp;
     updateScene(delta);
@@ -516,22 +610,54 @@
 
   function startAnimation() {
     stopAnimation();
+    drawScene();
+    if (prefersReducedMotion.matches) return;
     state.lastTime = performance.now();
     state.frameId = requestAnimationFrame(tick);
   }
 
   function previous() { setStep(state.step - 1); }
-  function next() { setStep(state.step + 1); }
+  function next() {
+    if (state.step === steps.length - 1) closeAndStartGame();
+    else setStep(state.step + 1);
+  }
+
+  function handleKeydown(event) {
+    if (!state.active || state.transitioning) return;
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      next();
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      previous();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      closeAndStartGame();
+    }
+  }
+
+  function handleMotionPreferenceChange() {
+    if (state.active) startAnimation();
+  }
 
   function closeAndStartGame() {
     stopAnimation();
+    if (state.transitionTimer !== null) {
+      window.clearTimeout(state.transitionTimer);
+      state.transitionTimer = null;
+    }
+    state.transitioning = false;
+    content.classList.remove("is-transitioning");
     detachListeners();
     state.active = false;
     overlay.classList.add("hidden");
     if (typeof window.startGame === "function") window.startGame();
   }
 
-  const handlers = { previous, next, closeAndStartGame };
+  const handlers = { previous, next, closeAndStartGame, handleKeydown, handleMotionPreferenceChange };
 
   function attachListeners() {
     if (state.listenersAttached) return;
@@ -539,6 +665,8 @@
     nextButton.addEventListener("click", handlers.next);
     skipButton.addEventListener("click", handlers.closeAndStartGame);
     startButton.addEventListener("click", handlers.closeAndStartGame);
+    window.addEventListener("keydown", handlers.handleKeydown, true);
+    prefersReducedMotion.addEventListener("change", handlers.handleMotionPreferenceChange);
     state.listenersAttached = true;
   }
 
@@ -548,13 +676,15 @@
     nextButton.removeEventListener("click", handlers.next);
     skipButton.removeEventListener("click", handlers.closeAndStartGame);
     startButton.removeEventListener("click", handlers.closeAndStartGame);
+    window.removeEventListener("keydown", handlers.handleKeydown, true);
+    prefersReducedMotion.removeEventListener("change", handlers.handleMotionPreferenceChange);
     state.listenersAttached = false;
   }
 
   function show() {
     state.active = true;
     attachListeners();
-    setStep(0);
+    setStep(0, false);
     overlay.classList.remove("hidden");
     startAnimation();
   }

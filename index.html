@@ -114,32 +114,49 @@
       aria-labelledby="tutorial-title"
     >
       <section class="card tutorial-card">
-        <div class="tutorial-step-indicator" id="tutorial-step-indicator">
-          Step 1 of 5
+        <div class="tutorial-progress" aria-hidden="true">
+          <span class="tutorial-progress__bar" id="tutorial-progress-bar"></span>
         </div>
-        <h2 id="tutorial-title">Meet the Maze</h2>
-        <p id="tutorial-message"></p>
-        <canvas
-          id="tutorial-canvas"
-          class="tutorial-canvas"
-          width="720"
-          height="500"
-          aria-label="Animated tutorial demonstration"
-        ></canvas>
-        <div class="tutorial-controls">
-          <button id="btn-tutorial-prev" class="btn btn-secondary" type="button">
-            Previous
-          </button>
-          <button id="btn-tutorial-next" class="btn btn-primary" type="button">
-            Next
-          </button>
-          <button id="btn-start-game" class="btn btn-primary hidden" type="button">
-            Start Game
-          </button>
-          <button id="btn-tutorial-skip" class="btn tutorial-skip" type="button">
-            Skip Tutorial
-          </button>
+        <div class="tutorial-content" id="tutorial-content">
+          <header class="tutorial-header">
+            <div class="tutorial-step-indicator" id="tutorial-step-indicator">
+              1 / 6
+            </div>
+            <h2 id="tutorial-title">Meet the Maze</h2>
+            <p id="tutorial-message"></p>
+          </header>
+          <div class="tutorial-demo">
+            <canvas
+              id="tutorial-canvas"
+              class="tutorial-canvas"
+              width="720"
+              height="500"
+              aria-label="Animated tutorial demonstration"
+            ></canvas>
+            <p class="tutorial-caption" id="tutorial-caption" aria-live="polite"></p>
+          </div>
         </div>
+        <footer class="tutorial-footer">
+          <div
+            class="tutorial-progress-dots"
+            id="tutorial-progress-dots"
+            aria-label="Tutorial progress"
+          ></div>
+          <div class="tutorial-controls">
+            <button id="btn-tutorial-prev" class="btn btn-secondary" type="button">
+              Previous
+            </button>
+            <button id="btn-tutorial-next" class="btn btn-primary" type="button">
+              Next
+            </button>
+            <button id="btn-start-game" class="btn btn-primary hidden" type="button">
+              Start Game
+            </button>
+            <button id="btn-tutorial-skip" class="btn tutorial-skip" type="button">
+              Skip Tutorial
+            </button>
+          </div>
+        </footer>
       </section>
     </div>
 
