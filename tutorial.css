@@ -1,0 +1,82 @@
+#overlay-tutorial {
+  z-index: 30;
+}
+
+.tutorial-card {
+  width: min(92vw, 760px);
+  max-width: 760px;
+  padding: 26px 28px 24px;
+}
+
+.tutorial-card h2 {
+  font-size: clamp(1.45rem, 3vw, 2rem);
+}
+
+.tutorial-card p {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.tutorial-step-indicator {
+  margin-bottom: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text);
+  opacity: 0.6;
+}
+
+.tutorial-canvas {
+  display: block;
+  width: min(82vw, 620px);
+  height: auto;
+  border-radius: 18px;
+  background: var(--tutorial-bg);
+  border: 2px solid rgba(48, 49, 40, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  margin: 8px auto 0;
+}
+
+.tutorial-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.tutorial-controls .btn {
+  max-width: none;
+  width: auto;
+  flex: 1 1 130px;
+}
+
+.tutorial-skip {
+  flex-basis: 100%;
+}
+
+.tutorial-controls .hidden {
+  display: none;
+}
+
+.tutorial-controls .btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+  transform: none;
+  box-shadow: none;
+}
+
+.tutorial-skip {
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  font-size: 0.8rem;
+  opacity: 0.55;
+}

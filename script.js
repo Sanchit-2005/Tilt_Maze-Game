@@ -17,6 +17,8 @@ const ACCEL = 0.75,
 
 // ── DOM refs ────────────────────────────────────────────────────────────
 const stage = document.getElementById("stage");
+const playerNameInput = document.getElementById("player-name");
+const nameError = document.getElementById("name-error");
 const cv = document.getElementById("maze"),
   ctx = cv.getContext("2d"),
   nub = document.getElementById("nub");
@@ -623,7 +625,27 @@ document.querySelectorAll(".pad button").forEach((b) => {
 });
 
 // ── Button wiring ────────────────────────────────────────────────────────
-btnPlay.addEventListener("click", startGame);
+function handleNameSubmit() {
+  const name = playerNameInput.value.trim();
+
+  if (!name) {
+    nameError.textContent = "Please enter your name.";
+    nameError.classList.remove("hidden");
+    return;
+  }
+
+  nameError.textContent = "";
+  nameError.classList.add("hidden");
+  localStorage.setItem("tiltMazePlayerName", name);
+  cancelLoop();
+  if (window.TiltMazeTutorial && typeof window.TiltMazeTutorial.show === "function") {
+    window.TiltMazeTutorial.show();
+  } else {
+    startGame();
+  }
+}
+
+btnPlay.addEventListener("click", handleNameSubmit);
 btnPause.addEventListener("click", pauseGame);
 btnResume.addEventListener("click", resumeGame);
 btnRestart.addEventListener("click", restartLevel);
@@ -634,3 +656,4 @@ btnRetry.addEventListener("click", restartLevel);
 buildMaze();
 cv.style.transform = "rotateX(8deg) rotateY(-4deg) rotateZ(-1deg)";
 ensureLoop();
+window.startGame = startGame;

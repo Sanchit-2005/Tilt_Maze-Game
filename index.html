@@ -8,6 +8,7 @@
     />
     <title>Tilt Maze</title>
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="tutorial.css" />
   </head>
   <body>
     <!-- Start overlay -->
@@ -76,6 +77,44 @@
       </div>
     </div>
 
+    <!-- Tutorial overlay: its canvas and controls are independent of the game canvas. -->
+    <div
+      id="overlay-tutorial"
+      class="overlay hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tutorial-title"
+    >
+      <section class="card tutorial-card">
+        <div class="tutorial-step-indicator" id="tutorial-step-indicator">
+          Step 1 of 5
+        </div>
+        <h2 id="tutorial-title">Meet the Maze</h2>
+        <p id="tutorial-message"></p>
+        <canvas
+          id="tutorial-canvas"
+          class="tutorial-canvas"
+          width="720"
+          height="500"
+          aria-label="Animated tutorial demonstration"
+        ></canvas>
+        <div class="tutorial-controls">
+          <button id="btn-tutorial-prev" class="btn btn-secondary" type="button">
+            Previous
+          </button>
+          <button id="btn-tutorial-next" class="btn btn-primary" type="button">
+            Next
+          </button>
+          <button id="btn-start-game" class="btn btn-primary hidden" type="button">
+            Start Game
+          </button>
+          <button id="btn-tutorial-skip" class="btn tutorial-skip" type="button">
+            Skip Tutorial
+          </button>
+        </div>
+      </section>
+    </div>
+
     <!-- Game -->
     <div class="game">
       <div id="stage"><canvas id="maze" width="900" height="900"></canvas></div>
@@ -106,6 +145,7 @@
     </div>
 
     <script src="script.js" defer></script>
+    <script src="tutorial.js" defer></script>
     <!-- Intro overlay (hidden until name submitted) -->
     <div id="overlay-intro" class="overlay hidden" role="dialog" aria-modal="true" aria-label="Game Intro">
       <div class="card intro-card">
