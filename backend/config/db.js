@@ -9,10 +9,7 @@ import mongoose from 'mongoose';
 const connectDB = async () => {
   const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/tiltmaze';
   try {
-    await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await mongoose.connect(mongoUri);
     console.log('✅ MongoDB connected');
   } catch (err) {
     console.error('❌ MongoDB connection error:', err.message);

@@ -11,7 +11,7 @@ const adminSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-adminSchema.index({ email: 1 }, { unique: true });
+
 
 // Helper to set password
 adminSchema.methods.setPassword = async function (plain) {

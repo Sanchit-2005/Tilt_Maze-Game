@@ -6,6 +6,7 @@ const gameSessionSchema = new mongoose.Schema(
   {
     sessionId: { type: String, default: uuidv4, unique: true },
     participant: { type: mongoose.Schema.Types.ObjectId, ref: 'Participant', required: true },
+    participantName: { type: String, required: true },
     mode: { type: String, enum: ['practice', 'competition'], default: 'practice' },
     status: {
       type: String,
@@ -24,7 +25,7 @@ const gameSessionSchema = new mongoose.Schema(
 );
 
 // Indexes for fast lookup & leaderboard
-gameSessionSchema.index({ sessionId: 1 }, { unique: true });
+
 gameSessionSchema.index({ mode: 1, score: -1, completionTimeMs: 1 });
 
 export default mongoose.model('GameSession', gameSessionSchema);

@@ -1,4 +1,5 @@
 // controllers/sessionController.js
+import GameSettings from '../models/GameSettings.js';
 import GameSession from '../models/GameSession.js';
 import Participant from '../models/Participant.js';
 import mongoose from 'mongoose';
@@ -14,6 +15,11 @@ export const startSession = async (req, res) => {
     const { participantId, mode } = req.body; // mode optional
     if (!participantId) {
       return res.status(400).json({ error: 'participantId required' });
+    }
+    // Check if new sessions are allowed
+    const settings = await GameSettings.findOne();
+    if (settings && settings.sessionsEnabled === false) {
+      return res.status(403).json({ error: 'New sessions are currently disabled by the organizer' });
     }
     const participant = await findParticipantById(participantId);
     if (!participant) {

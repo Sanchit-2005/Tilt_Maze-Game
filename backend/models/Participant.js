@@ -9,6 +9,6 @@ const participantSchema = new mongoose.Schema(
   { timestamps: { createdAt: 'createdAt', updatedAt: false } }
 );
 
-participantSchema.index({ participantId: 1 }, { unique: true });
+
 
 export default mongoose.model('Participant', participantSchema);

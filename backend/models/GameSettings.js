@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 
 const gameSettingsSchema = new mongoose.Schema(
   {
+    sessionsEnabled: { type: Boolean, default: true }, // allow new sessions
     timerDuration: { type: Number, default: 60 }, // seconds per level base
     difficulty: { type: String, enum: ['easy', 'medium', 'hard'], default: 'medium' },
     maxLevel: { type: Number, default: 20 },
