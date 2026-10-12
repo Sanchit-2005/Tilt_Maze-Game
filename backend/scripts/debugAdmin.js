@@ -18,7 +18,7 @@ dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
     process.exit(1);
   }
   await mongoose.connect(mongoUri, { dbName: 'tiltmaze' });
-  const admins = await Admin.find({});
-  console.log('Admins in DB:', admins);
+  const admins = await Admin.find({}).select('email role createdAt');
+  console.log('Admin records:', admins.map(({ email, role, createdAt }) => ({ email, role, createdAt })));
   process.exit(0);
 })();

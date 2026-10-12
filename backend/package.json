@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "create-admin": "node scripts/createAdmin.js",
+    "test:routes": "node tests/route-allowlist.test.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

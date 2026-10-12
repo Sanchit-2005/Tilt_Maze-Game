@@ -68,6 +68,7 @@
         <p>Enter your name to begin</p>
         <input type="text" id="player-name" placeholder="Enter Your Name" maxlength="30" />
         <button id="btn-play" class="btn btn-primary">Start Game</button>
+        <button id="btn-leaderboard-start" class="btn btn-secondary" type="button">Leaderboard</button>
         <p id="name-error" class="error hidden"></p>
       </div>
     </div>
@@ -117,6 +118,9 @@
         </button>
         <button id="btn-retry" class="btn btn-secondary" style="display: none">
           Retry
+        </button>
+        <button id="btn-leaderboard-result" class="btn btn-secondary" type="button">
+          Leaderboard
         </button>
       </div>
     </div>
@@ -168,6 +172,9 @@
             <button id="btn-start-game" class="btn btn-primary hidden" type="button">
               Start Game
             </button>
+            <button id="btn-leaderboard-tutorial" class="btn btn-secondary" type="button">
+              Leaderboard
+            </button>
             <button id="btn-tutorial-skip" class="btn tutorial-skip" type="button">
               Skip Tutorial
             </button>
@@ -206,6 +213,7 @@
       <button id="btn-pause" aria-label="Pause game">&#x23F8;</button>
     </div>
 
+    <script src="storage.js" type="module"></script>
     <script src="audio.js" defer></script>
     <script src="script.js" defer></script>
     <script src="tutorial.js" defer></script>
@@ -216,6 +224,33 @@
         <h1 class="intro-title">Tilt Maze</h1>
         <p class="intro-subtitle" id="intro-message"></p>
         <div class="loader"></div>
+      </div>
+    </div>
+
+    <!-- Score prompt shown only after the timer ends. -->
+    <div id="overlay-score-entry" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="score-entry-title">
+      <div class="card score-entry-card">
+        <h2 id="score-entry-title">Save your run</h2>
+        <p id="score-entry-summary"></p>
+        <form id="score-entry-form" novalidate>
+          <label for="score-player-name">Name</label>
+          <input type="text" id="score-player-name" maxlength="12" autocomplete="off" />
+          <p id="score-entry-error" class="error hidden"></p>
+          <button class="btn btn-primary" type="submit">Save Score</button>
+          <button id="btn-score-skip" class="btn btn-secondary" type="button">Skip</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Leaderboard modal. Player text is inserted with textContent in script.js. -->
+    <div id="overlay-leaderboard" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="leaderboard-title">
+      <div class="card leaderboard-card">
+        <div class="leaderboard-heading">
+          <h2 id="leaderboard-title">Leaderboard</h2>
+          <button id="btn-leaderboard-close" class="leaderboard-close" type="button" aria-label="Close leaderboard">×</button>
+        </div>
+        <p id="leaderboard-empty" class="leaderboard-empty hidden">No scores yet</p>
+        <ol id="leaderboard-list" class="leaderboard-list"></ol>
       </div>
     </div>
   </body>

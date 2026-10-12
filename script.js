@@ -39,6 +39,19 @@ const resBadge = document.getElementById("result-badge"),
   resTitle = document.getElementById("result-title"),
   resTime = document.getElementById("res-time"),
   resBalls = document.getElementById("res-balls");
+const overlayScoreEntry = document.getElementById("overlay-score-entry"),
+  overlayLeaderboard = document.getElementById("overlay-leaderboard"),
+  scoreEntryForm = document.getElementById("score-entry-form"),
+  scorePlayerNameInput = document.getElementById("score-player-name"),
+  scoreEntrySummary = document.getElementById("score-entry-summary"),
+  scoreEntryError = document.getElementById("score-entry-error"),
+  leaderboardList = document.getElementById("leaderboard-list"),
+  leaderboardEmpty = document.getElementById("leaderboard-empty");
+const btnLeaderboardStart = document.getElementById("btn-leaderboard-start"),
+  btnLeaderboardTutorial = document.getElementById("btn-leaderboard-tutorial"),
+  btnLeaderboardResult = document.getElementById("btn-leaderboard-result"),
+  btnLeaderboardClose = document.getElementById("btn-leaderboard-close"),
+  btnScoreSkip = document.getElementById("btn-score-skip");
 
 // ── Colour cache ─────────────────────────────────────────────────────────
 const col = {
@@ -84,6 +97,11 @@ const cursorTilt = { x: 0, y: 0, active: false };
 let timerSnapshot = 0,
   timerStart = 0,
   timeLeft = 0;
+let runScore = 0,
+  runElapsedMs = 0,
+  runScoreSaved = false,
+  currentScoreId = null,
+  leaderboardKeydownHandler = null;
 let rafId = null;
 let tx = 0,
   ty = 0;
@@ -109,6 +127,167 @@ function pauseTimer() {
 }
 function resumeTimer() {
   timerStart = performance.now();
+}
+
+// Run scoring is bookkeeping only. It does not affect physics, controls, HUD,
+// or the existing level transitions.
+function resetRunScore() {
+  runScore = 0;
+  runElapsedMs = 0;
+  runScoreSaved = false;
+  currentScoreId = null;
+}
+
+function addMergeScore() {
+  runScore += 50;
+}
+
+function addLevelScore() {
+  const secondsRemaining = Math.max(0, Math.floor(timeLeft));
+  runScore += 500 + level * 100 + secondsRemaining * 10;
+}
+
+function storageApi() {
+  return window.TiltMazeStorage || null;
+}
+
+function scoreName(value) {
+  const storage = storageApi();
+  if (storage && typeof storage.sanitizeName === "function") {
+    return storage.sanitizeName(value);
+  }
+  return String(value || "")
+    .replace(/[\u0000-\u001f\u007f]/g, "")
+    .replace(/[<>]/g, "")
+    .trim()
+    .slice(0, 12);
+}
+
+function scoreTimeLabel(totalTimeMs) {
+  return `${(Math.max(0, Number(totalTimeMs) || 0) / 1000).toFixed(1)}s`;
+}
+
+function leaderboardSort(a, b) {
+  return (
+    b.score - a.score ||
+    b.level - a.level ||
+    a.totalTimeMs - b.totalTimeMs ||
+    Date.parse(a.date) - Date.parse(b.date)
+  );
+}
+
+function renderLeaderboard() {
+  leaderboardList.replaceChildren();
+  const storage = storageApi();
+  let entries = [];
+  try {
+    entries = storage ? storage.getScores().sort(leaderboardSort).slice(0, 10) : [];
+  } catch {
+    entries = [];
+  }
+
+  leaderboardEmpty.classList.toggle("hidden", entries.length > 0);
+  entries.forEach((entry, index) => {
+    const item = document.createElement("li");
+    item.className = "leaderboard-row";
+    if (entry.id === currentScoreId) item.classList.add("is-current");
+
+    const rank = document.createElement("span");
+    rank.className = "leaderboard-rank";
+    rank.textContent = String(index + 1);
+    if (index < 3) {
+      rank.classList.add(`leaderboard-rank--${index + 1}`);
+      rank.setAttribute("aria-label", `${["Gold", "Silver", "Bronze"][index]} medal`);
+    }
+
+    const name = document.createElement("span");
+    name.className = "leaderboard-name";
+    name.textContent = entry.name;
+
+    const score = document.createElement("span");
+    score.className = "leaderboard-score";
+    score.textContent = `${entry.score.toLocaleString()} · L${entry.level} · ${scoreTimeLabel(entry.totalTimeMs)}`;
+
+    item.append(rank, name, score);
+    leaderboardList.appendChild(item);
+  });
+}
+
+function closeLeaderboard() {
+  hideOverlay(overlayLeaderboard);
+  if (leaderboardKeydownHandler) {
+    document.removeEventListener("keydown", leaderboardKeydownHandler);
+    leaderboardKeydownHandler = null;
+  }
+}
+
+function openLeaderboard() {
+  renderLeaderboard();
+  showOverlay(overlayLeaderboard);
+  if (!leaderboardKeydownHandler) {
+    leaderboardKeydownHandler = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeLeaderboard();
+      }
+    };
+    document.addEventListener("keydown", leaderboardKeydownHandler);
+  }
+}
+
+// Tutorial owns a capture-phase Escape handler. This early dormant guard stays
+// registered so it always runs first; it only intercepts Escape while this
+// modal is open. The modal-specific document listener is removed on close.
+function interceptLeaderboardEscape(event) {
+  if (!overlayLeaderboard.classList.contains("hidden") && event.key === "Escape") {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    closeLeaderboard();
+  }
+}
+
+function openScoreEntry() {
+  if (runScoreSaved) return;
+  let storedName = "";
+  try {
+    storedName = localStorage.getItem("tiltMazePlayerName") || "";
+  } catch {
+    storedName = "";
+  }
+  const existingName = scoreName(playerNameInput.value || storedName);
+  scorePlayerNameInput.value = existingName;
+  scoreEntrySummary.textContent = `Score ${runScore.toLocaleString()} · Level ${level}`;
+  scoreEntryError.textContent = "";
+  scoreEntryError.classList.add("hidden");
+  showOverlay(overlayScoreEntry);
+  window.setTimeout(() => scorePlayerNameInput.focus(), 0);
+}
+
+function saveRunScore() {
+  const name = scoreName(scorePlayerNameInput.value);
+  if (!name) {
+    scoreEntryError.textContent = "Enter a name up to 12 characters.";
+    scoreEntryError.classList.remove("hidden");
+    return;
+  }
+
+  const storage = storageApi();
+  try {
+    if (!storage) throw new Error("Score storage is unavailable.");
+    const entry = storage.addScore({
+      name,
+      score: Math.max(0, Math.round(runScore)),
+      level,
+      totalTimeMs: Math.max(0, Math.round(runElapsedMs)),
+      date: new Date().toISOString(),
+    });
+    currentScoreId = entry.id;
+    runScoreSaved = true;
+    hideOverlay(overlayScoreEntry);
+  } catch {
+    scoreEntryError.textContent = "Unable to save this score in local storage.";
+    scoreEntryError.classList.remove("hidden");
+  }
 }
 
 // ── Maze generation & 4 orange balls spawn ──────────────────────────────
@@ -266,6 +445,7 @@ function processMerges() {
           });
           balls.splice(j, 1);
           balls.splice(i, 1, nb);
+          addMergeScore();
           window.AudioManager?.playSfx("merge");
           merged = true;
           updateHud();
@@ -501,6 +681,7 @@ function resetCursorTilt() {
 function startGame() {
   window.AudioManager?.init();
   window.AudioManager?.startMusic();
+  resetRunScore();
   level = 1;
   resetCursorTilt();
   buildMaze();
@@ -538,12 +719,14 @@ function resumeGame() {
 }
 
 function restartLevel() {
+  const restartingAfterTimeout = gameState === "timeout";
   window.AudioManager?.init();
   window.AudioManager?.startMusic();
   cancelLoop();
   resetCursorTilt();
   hideOverlay(overlayPause);
   hideOverlay(overlayResult);
+  if (restartingAfterTimeout) resetRunScore();
   tx = 0;
   ty = 0;
   cv.style.transform = "rotateX(4deg) rotateY(-2deg) rotateZ(-0.5deg)";
@@ -557,6 +740,8 @@ function restartLevel() {
 }
 
 function triggerWin() {
+  runElapsedMs += elapsedMs();
+  addLevelScore();
   window.AudioManager?.playSfx("levelComplete");
   window.AudioManager?.stopMusic();
   pauseTimer();
@@ -574,6 +759,7 @@ function triggerWin() {
 }
 
 function triggerTimeout() {
+  runElapsedMs += elapsedMs();
   window.AudioManager?.playSfx("gameOver");
   window.AudioManager?.stopMusic();
   gameState = "timeout";
@@ -587,6 +773,7 @@ function triggerTimeout() {
   btnNext.style.display = "none";
   btnRetry.style.display = "";
   showOverlay(overlayResult);
+  openScoreEntry();
 }
 
 function nextLevel() {
@@ -699,7 +886,11 @@ function handleNameSubmit() {
 
   nameError.textContent = "";
   nameError.classList.add("hidden");
-  localStorage.setItem("tiltMazePlayerName", name);
+  try {
+    localStorage.setItem("tiltMazePlayerName", name);
+  } catch {
+    // A score can still be saved through storage.js if name preference storage fails.
+  }
   cancelLoop();
   if (window.TiltMazeTutorial && typeof window.TiltMazeTutorial.show === "function") {
     window.TiltMazeTutorial.show();
@@ -714,6 +905,19 @@ btnResume.addEventListener("click", resumeGame);
 btnRestart.addEventListener("click", restartLevel);
 btnNext.addEventListener("click", nextLevel);
 btnRetry.addEventListener("click", restartLevel);
+btnLeaderboardStart.addEventListener("click", openLeaderboard);
+btnLeaderboardTutorial.addEventListener("click", openLeaderboard);
+btnLeaderboardResult.addEventListener("click", openLeaderboard);
+btnLeaderboardClose.addEventListener("click", closeLeaderboard);
+window.addEventListener("keydown", interceptLeaderboardEscape, true);
+scoreEntryForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  saveRunScore();
+});
+btnScoreSkip.addEventListener("click", () => {
+  runScoreSaved = true;
+  hideOverlay(overlayScoreEntry);
+});
 
 // ── Boot ─────────────────────────────────────────────────────────────────
 function bootGame() {

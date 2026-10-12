@@ -12,14 +12,18 @@ const __dirname = path.dirname(__filename);
 // Load .env located in the backend root
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
-const EMAIL = 'admin@test.com';
-const PASSWORD = 'Admin123!'; // change if desired
+const EMAIL = process.env.ADMIN_EMAIL;
+const PASSWORD = process.env.ADMIN_PASSWORD;
 
 const run = async () => {
   try {
     const mongoUri = process.env.MONGODB_URI;
     if (!mongoUri) {
       console.error('❌ MONGODB_URI not defined in environment');
+      process.exit(1);
+    }
+    if (!EMAIL || !PASSWORD) {
+      console.error('❌ ADMIN_EMAIL and ADMIN_PASSWORD must be defined in the environment');
       process.exit(1);
     }
     // Connect using the same options as the backend (no extra flags needed)
